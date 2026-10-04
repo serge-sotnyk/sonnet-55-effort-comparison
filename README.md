@@ -19,6 +19,7 @@ Then open `http://127.0.0.1:8766/games/<level>/`.
 | Build | Elapsed | API time | Total tokens | Est. cost (API list) | Weekly limit (Team) | Opus 5.5 for comparison |
 |---|---:|---:|---:|---:|---|---|
 | [Low](games/low/) | 25m 07s | 23m 15s | 8,056,152 | $4.30 | 1% → 2% | 19m 10s · 3,140,950 · $3.79 |
+| [High](games/high/) | 1h 25m 34s | 1h 06m 43s | 106,831,205 | $28.85 | 2% → 4% | 1h 00m 33s · 30,665,190 · $16.11 |
 
 Full metrics are in [results.json](results.json); per-run final result events are in `runs/<level>/result.json`.
 

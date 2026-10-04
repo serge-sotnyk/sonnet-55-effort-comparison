@@ -25,14 +25,18 @@ def fmt_duration(seconds):
 def main(level):
     run_dir = REPO / "runs" / level
     meta = json.loads((run_dir / "meta.json").read_text())
-    result = None
+    # A run can end several turns (e.g. when the model waits on background
+    # monitors). Cost, usage, API time and subagent stats are cumulative, so the
+    # last result event holds the totals; turns and denials are per segment.
+    results = []
     for line in (run_dir / "stream.jsonl").read_text().splitlines():
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
             continue
         if event.get("type") == "result":
-            result = event
+            results.append(event)
+    result = results[-1] if results else None
     if result is None:
         sys.exit(f"no result event in {run_dir / 'stream.jsonl'}")
 
@@ -52,9 +56,10 @@ def main(level):
         "total_tokens": sum(tokens.values()),
         "elapsed": fmt_duration(meta["wall_seconds"]),
         "api_time": fmt_duration(result.get("duration_api_ms", 0) / 1000),
-        "num_turns": result.get("num_turns"),
+        "num_turns": sum(r.get("num_turns") or 0 for r in results),
+        "result_segments": len(results),
         "subagents_spawned": result.get("subagent_stats", {}).get("spawned"),
-        "permission_denials": len(result.get("permission_denials", [])),
+        "permission_denials": sum(len(r.get("permission_denials") or []) for r in results),
         "cost_by_model": {k: round(v.get("costUSD", 0), 2) for k, v in models.items()},
         "cli_version": meta["cli_version"],
         "status": "Complete" if result.get("subtype") == "success" and meta["exit_code"] == 0
@@ -68,6 +73,9 @@ def main(level):
 
     results_path = REPO / "results.json"
     rows = json.loads(results_path.read_text()) if results_path.exists() else []
+    # Keep fields added by hand (e.g. usage_limits) when re-collecting.
+    old = next((r for r in rows if r.get("effort") == row["effort"]), {})
+    row = {**old, **row}
     rows = [r for r in rows if r.get("effort") != row["effort"]] + [row]
     rows.sort(key=lambda r: ORDER.index(next(k for k, v in LABELS.items() if v == r["effort"])))
     results_path.write_text(json.dumps(rows, indent=2) + "\n")

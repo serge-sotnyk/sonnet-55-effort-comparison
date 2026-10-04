@@ -26,6 +26,37 @@
       "weekly_all_before": "1%",
       "weekly_all_after": "2%",
       "note": "Read from the app's usage panel; includes the orchestrating session's own small usage; whole-percent rounding."
+    },
+    "result_segments": 1
+  },
+  {
+    "effort": "High",
+    "model": "claude-sonnet-5-5",
+    "cost": 28.85,
+    "input": 464,
+    "output": 509415,
+    "cache_read": 105661759,
+    "cache_write": 659567,
+    "total_tokens": 106831205,
+    "elapsed": "1h 25m 34s",
+    "api_time": "1h 06m 43s",
+    "num_turns": 223,
+    "result_segments": 16,
+    "subagents_spawned": 1,
+    "permission_denials": 0,
+    "cost_by_model": {
+      "claude-sonnet-5-5": 28.85
+    },
+    "cli_version": "2.1.289",
+    "status": "Complete",
+    "play": "games/high/",
+    "usage_limits": {
+      "plan": "Team",
+      "session_before": "0%",
+      "session_after": "21%",
+      "weekly_all_before": "2%",
+      "weekly_all_after": "4%",
+      "note": "Read from the app's usage panel; includes the orchestrating session's own small usage; whole-percent rounding."
     }
   }
 ]

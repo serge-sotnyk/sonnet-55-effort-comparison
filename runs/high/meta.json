@@ -1,0 +1,11 @@
+{
+  "level": "high",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "prompt": "original.txt",
+  "cli_version": "2.1.289",
+  "work_dir": "~/sonnet-55-experiment/high",
+  "started_utc": "2026-10-04T18:20:42Z",
+  "wall_seconds": 5134,
+  "exit_code": 0
+}
