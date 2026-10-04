@@ -4,6 +4,10 @@ A replication of [Barty-Bart/opus-55-effort-comparison](https://github.com/Barty
 
 ## Play
 
+Online: **https://serge-sotnyk.github.io/sonnet-55-effort-comparison/**
+
+Or locally from the repository folder:
+
 ```sh
 python3 -m http.server 8766 --bind 127.0.0.1
 ```
