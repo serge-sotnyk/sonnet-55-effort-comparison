@@ -1,0 +1,9 @@
+.DS_Store
+node_modules/
+__pycache__/
+.claude/
+# raw run logs stay local (contain local paths)
+runs/*/stream.jsonl
+runs/*/stderr.log
+runs/*/status
+runs/*-launcher.log

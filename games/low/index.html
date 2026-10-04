@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Age of Kingdoms</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--gold:#d9b45a;--gold2:#8a6a2a;--wood:#2b1d12;--wood2:#3d2a1a;--parch:#e9dcb8;--ink:#2a1c10}
+*{box-sizing:border-box;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;overflow:hidden;background:#05070b;font-family:Georgia,'Palatino Linotype',Palatino,serif;color:var(--parch)}
+canvas#c{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:default}
+#top{position:absolute;left:0;right:0;top:0;height:40px;display:flex;align-items:center;gap:6px;padding:0 10px;background:linear-gradient(#3b2916ee,#22160c ee);background:linear-gradient(#3b2916f0,#1f140bf0);border-bottom:2px solid var(--gold2);box-shadow:0 2px 8px #000a;z-index:5;font-size:15px}
+.chip{display:flex;align-items:center;gap:6px;background:#140d07;border:1px solid var(--gold2);border-radius:5px;padding:3px 10px;min-width:82px;box-shadow:inset 0 0 6px #000}
+.chip b{font-weight:bold;color:#fff3cf;min-width:34px;text-align:right}
+.chip.pop b.full{color:#ff6a5a}
+#age{margin:0 auto;font-size:17px;letter-spacing:1px;color:var(--gold);text-shadow:0 1px 2px #000;font-variant:small-caps}
+.tb{background:linear-gradient(#5a4126,#3a2814);border:1px solid var(--gold2);color:var(--parch);border-radius:5px;padding:4px 10px;cursor:pointer;font:inherit;font-size:14px}
+.tb:hover{filter:brightness(1.3)}
+#bottom{position:absolute;left:0;right:0;bottom:0;height:186px;display:flex;gap:0;background:linear-gradient(#35251a,#1d130b);border-top:3px solid var(--gold2);box-shadow:0 -3px 12px #000c;z-index:5}
+#mmbox{width:264px;padding:8px;display:flex;flex-direction:column;align-items:center;background:#120c07;border-right:3px solid var(--gold2)}
+#mm{width:244px;height:122px;background:#000;border:2px solid var(--gold2);cursor:pointer;margin-top:4px}
+#mmhint{font-size:11px;color:#a89870;margin-top:5px;text-align:center;line-height:1.35}
+#info{flex:1;padding:8px 12px;overflow:hidden;position:relative;min-width:0}
+#cmds{width:312px;padding:8px;background:#120c07;border-left:3px solid var(--gold2);display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr);gap:5px}
+.btn{position:relative;border:1px solid var(--gold2);background:linear-gradient(#5b4228,#2f2012);border-radius:5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;padding:2px;color:var(--parch);overflow:hidden}
+.btn:hover:not(.dis){filter:brightness(1.35);border-color:#ffe9a8}
+.btn .ic{font-size:23px;line-height:1.1}
+.btn .k{position:absolute;left:3px;top:1px;font-size:10px;color:#cdb67a;font-weight:bold}
+.btn .c{font-size:10px;color:#e8dcc0;white-space:nowrap;text-align:center;line-height:1.1;margin-top:1px}
+.btn.dis{filter:grayscale(.8) brightness(.65);cursor:not-allowed}
+.btn.lock .ic{opacity:.5}
+.btn.empty{visibility:hidden}
+.btn .bar{position:absolute;left:0;bottom:0;height:3px;background:#e8c04a}
+.btn.age{background:linear-gradient(#7a5a1c,#3a2a0c);border-color:#ffe08a}
+#tip{position:absolute;display:none;z-index:20;background:#1a1109f5;border:1px solid var(--gold);border-radius:6px;padding:8px 11px;max-width:290px;font-size:13px;pointer-events:none;box-shadow:0 4px 14px #000c;line-height:1.35}
+#tip h4{margin:0 0 3px;color:var(--gold);font-size:15px}
+#tip .bad{color:#ff8a7a}
+.ititle{font-size:18px;color:#fff3cf;font-weight:bold}
+.isub{font-size:12px;color:#b8a878}
+.irow{display:flex;gap:12px;align-items:flex-start}
+.port{width:78px;height:78px;border:2px solid var(--gold2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:44px;background:radial-gradient(#5d6c7a,#1d242c);flex:none;box-shadow:inset 0 0 12px #000}
+.hpbar{height:10px;background:#000;border:1px solid #000;border-radius:3px;overflow:hidden;margin:5px 0;width:200px}
+.hpbar i{display:block;height:100%;background:#4cc24c}
+.stats{font-size:13px;line-height:1.55;color:#e0d4b0;margin-top:2px}
+.stats span{display:inline-block;margin-right:12px}
+.multi{display:flex;flex-wrap:wrap;gap:4px;max-height:150px;overflow:hidden;align-content:flex-start}
+.mi{position:relative;width:44px;height:44px;border:1px solid var(--gold2);background:#1c1610;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer}
+.mi:hover{border-color:#fff}
+.mi i{position:absolute;left:2px;right:2px;bottom:2px;height:3px;background:#4cc24c}
+.queue{display:flex;gap:5px;margin-top:6px;align-items:center}
+.qi{position:relative;width:40px;height:40px;border:1px solid var(--gold2);background:#1c1610;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;overflow:hidden}
+.qi:hover{border-color:#ff8a7a}
+.qi i{position:absolute;left:0;bottom:0;height:4px;background:#e8c04a}
+#msgs{position:absolute;left:50%;transform:translateX(-50%);bottom:200px;display:flex;flex-direction:column;align-items:center;gap:4px;z-index:6;pointer-events:none}
+.msg{background:#120c07e8;border:1px solid var(--gold2);padding:5px 14px;border-radius:5px;font-size:15px;color:#fff3cf;transition:opacity .6s}
+.msg.bad{border-color:#c0392b;color:#ffb0a0}
+#hint{position:absolute;left:12px;top:50px;z-index:4;font-size:13px;color:#fff;text-shadow:0 1px 3px #000;pointer-events:none}
+.overlay{position:absolute;inset:0;z-index:30;display:none;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(ellipse at center,#0d1218cc,#05070bf5)}
+.overlay.on{display:flex}
+#start.overlay{background:radial-gradient(ellipse at center,#0d121855,#05070bcc)}
+.panel{background:linear-gradient(#3a281a,#1f140b);border:3px solid var(--gold2);border-radius:12px;padding:26px 36px;text-align:center;box-shadow:0 0 40px #000,inset 0 0 30px #0008;max-width:620px}
+h1{font-size:62px;margin:0;color:var(--gold);letter-spacing:4px;text-shadow:0 3px 0 #5a3d12,0 6px 18px #000;font-variant:small-caps}
+h2{margin:0 0 10px;color:var(--gold);font-size:32px}
+.sub{font-style:italic;color:#c9b88a;margin:4px 0 22px;font-size:17px}
+.big{display:block;width:260px;margin:9px auto;padding:11px;font:inherit;font-size:20px;color:#2a1c10;background:linear-gradient(#f0d78a,#c49a3a);border:2px solid #6a4a14;border-radius:8px;cursor:pointer;font-weight:bold}
+.big:hover{filter:brightness(1.12)}
+.diffs{display:flex;gap:10px;justify-content:center;margin-bottom:12px}
+.diffs button{font:inherit;font-size:16px;padding:7px 16px;background:#2a1c10;color:var(--parch);border:2px solid var(--gold2);border-radius:7px;cursor:pointer}
+.diffs button.on{background:linear-gradient(#f0d78a,#c49a3a);color:#2a1c10;font-weight:bold}
+.help{text-align:left;font-size:13.5px;line-height:1.55;color:#d8cba4;margin-top:14px;columns:2;column-gap:28px}
+.help b{color:var(--gold)}
+.stat{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 24px;margin:14px 0;font-size:15px}
+#bg{position:absolute;inset:0;z-index:29;background:#05070b;display:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="top">
+  <div class="chip" title="Food">🍖<b id="rf">0</b></div>
+  <div class="chip" title="Wood">🪵<b id="rw">0</b></div>
+  <div class="chip" title="Gold">🪙<b id="rg">0</b></div>
+  <div class="chip" title="Stone">🪨<b id="rs">0</b></div>
+  <div class="chip pop" title="Population">👥<b id="rp">0/0</b></div>
+  <div id="age">Dark Age</div>
+  <button class="tb" id="idle" title="Select idle villager (.)">👨‍🌾 Idle: <span id="idlen">0</span></button>
+  <div class="chip" style="min-width:60px" title="Game time">⏱<b id="clock" style="min-width:42px">0:00</b></div>
+  <button class="tb" id="spd" title="Game speed (+ / -)">1x</button>
+  <button class="tb" id="menubtn">☰ Menu</button>
+</div>
+<div id="hint"></div>
+<div id="msgs"></div>
+<div id="bottom">
+  <div id="mmbox"><canvas id="mm" width="240" height="120"></canvas><div id="mmhint">Click to move the view · Right-click to send units</div></div>
+  <div id="info"></div>
+  <div id="cmds"></div>
+</div>
+<div id="tip"></div>
+
+<div id="start" class="overlay on">
+  <div class="panel">
+    <h1>Age of Kingdoms</h1>
+    <div class="sub">Build a settlement. Rise through the ages. Crush your rival.</div>
+    <div class="diffs" id="diffs"><button data-d="easy">Easy</button><button data-d="normal" class="on">Standard</button><button data-d="hard">Hard</button></div>
+    <button class="big" id="play">Begin Conquest</button>
+    <div class="help">
+      <b>Goal:</b> destroy every building of the red kingdom.<br>
+      <b>Economy:</b> villagers gather food, wood, gold &amp; stone. Build Mills, Lumber &amp; Mining Camps near resources and keep building Houses.<br>
+      <b>Ages:</b> advance at the Town Center to unlock new buildings, units and upgrades.<br>
+      <b>Select:</b> left-click / drag-box, double-click selects similar.<br>
+      <b>Command:</b> right-click to move, gather, attack, build, repair, or set a rally point.<br>
+      <b>Hotkeys:</b> Q W E R / A S D F / Z X C V = command card, <b>A</b>-move via the card, Ctrl+1-9 groups, <b>.</b> idle villager, <b>H</b> town center, <b>Space</b> last alert, arrows/edges scroll, wheel zoom, <b>P</b> pause.
+    </div>
+  </div>
+</div>
+<div id="pause" class="overlay">
+  <div class="panel"><h2>Paused</h2>
+    <button class="big" id="resume">Resume</button>
+    <button class="big" id="mute">Sound: On</button>
+    <button class="big" id="restart">New Game</button>
+  </div>
+</div>
+<div id="end" class="overlay">
+  <div class="panel"><h2 id="endt">Victory!</h2><div class="sub" id="endsub"></div><div class="stat" id="endstat"></div>
+    <button class="big" id="again">Play Again</button></div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/world.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
