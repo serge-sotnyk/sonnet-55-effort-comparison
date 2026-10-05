@@ -1,6 +1,6 @@
 # Sonnet 5.5: reasoning levels, one game prompt
 
-A replication of [Barty-Bart/opus-55-effort-comparison](https://github.com/Barty-Bart/opus-55-effort-comparison) (commit `203aaae`) with `claude-sonnet-5-5` instead of `claude-opus-5-5`. The prompts in [prompts/](prompts/) are byte-identical copies of the originals.
+A replication of [Barty-Bart/opus-55-effort-comparison](https://github.com/Barty-Bart/opus-55-effort-comparison) (commit `203aaae`) with `claude-sonnet-5-5` instead of `claude-opus-5-5`. The original experiment is shown in [this video](https://youtu.be/kQFzX_hKHns). The prompts in [prompts/](prompts/) are byte-identical copies of the originals.
 
 ## Play
 

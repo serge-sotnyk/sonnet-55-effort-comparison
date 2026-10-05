@@ -24,11 +24,11 @@
     margin: 0; background: var(--bg); color: var(--text);
     font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
-  main { max-width: 960px; margin: 0 auto; padding: 40px 16px 64px; }
+  main { max-width: 1120px; margin: 0 auto; padding: 40px 16px 64px; }
   h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 8px; }
   h2 { font-size: 1.15rem; margin: 40px 0 12px; }
   p { margin: 0 0 12px; }
-  .lede { color: var(--muted); max-width: 680px; }
+  .lede { color: var(--muted); max-width: 760px; }
   a { color: var(--accent); }
   .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
   .card {
@@ -42,10 +42,12 @@
   .card.pending .meta { color: var(--pending); }
   .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
   table { border-collapse: collapse; width: 100%; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
-  th, td { padding: 9px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--border); }
+  th, td { padding: 9px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--border); }
   th:first-child, td:first-child { text-align: left; }
   thead th { color: var(--muted); font-weight: 600; font-size: 0.82rem; }
   tbody tr:last-child td { border-bottom: none; }
+  thead tr.group th { text-align: center; color: var(--text); font-size: 0.85rem; border-bottom: none; padding-bottom: 0; }
+  th.sep, td.sep { border-left: 1px solid var(--border); }
   td.opus { color: var(--muted); }
   .note { color: var(--muted); font-size: 0.88rem; margin-top: 10px; }
   ul { padding-left: 20px; margin: 0; }
@@ -57,7 +59,7 @@
   <h1>Sonnet 5.5: reasoning levels, one game prompt</h1>
   <p class="lede">
     A replication of <a href="https://github.com/Barty-Bart/opus-55-effort-comparison">Barty-Bart/opus-55-effort-comparison</a>
-    with <code>claude-sonnet-5-5</code>. Each build came from the same prompt in a fresh, empty folder with a different effort level.
+    with <code>claude-sonnet-5-5</code> (the original is shown in <a href="https://youtu.be/kQFzX_hKHns">this video</a>). Each build came from the same prompt in a fresh, empty folder with a different effort level.
     These are experimental AI-generated games, bugs included. Desktop keyboard and mouse recommended; audio starts after a click.
   </p>
 
@@ -68,9 +70,13 @@
   <div class="table-wrap">
     <table>
       <thead>
+        <tr class="group">
+          <th></th><th colspan="5" class="sep">Sonnet 5.5</th><th colspan="3" class="sep">Opus 5.5</th>
+        </tr>
         <tr>
-          <th>Build</th><th>Elapsed</th><th>API time</th><th>Total tokens</th><th>Output tokens</th><th>Est. cost</th>
-          <th>Opus elapsed</th><th>Opus tokens</th><th>Opus cost</th>
+          <th>Build</th>
+          <th class="sep">Elapsed</th><th>API time</th><th>Tokens</th><th>Output</th><th>Cost</th>
+          <th class="sep">Elapsed</th><th>Tokens</th><th>Cost</th>
         </tr>
       </thead>
       <tbody id="rows"></tbody>
@@ -78,11 +84,12 @@
   </div>
   <p class="note">
     Costs are API-list-price equivalents reported by Claude Code, not subscription charges. Total tokens include input, output,
-    cache reads and cache writes. Opus figures are from the original repository.
+    cache reads and cache writes; hover a token count for the exact number. Opus figures are from the original repository.
   </p>
 
   <h2>Sources</h2>
   <ul>
+    <li><a href="https://youtu.be/kQFzX_hKHns">Original video</a> · <a href="https://github.com/Barty-Bart/opus-55-effort-comparison">original Opus 5.5 repository</a></li>
     <li><a href="prompts/original.txt">Original prompt</a> · <a href="prompts/special-build.txt">Special Build prompt</a></li>
     <li><a href="results.json">results.json</a> — full metrics per run</li>
     <li><a href="https://github.com/serge-sotnyk/sonnet-55-effort-comparison">Repository</a> — game source, run scripts and method</li>
@@ -106,6 +113,8 @@
     "Special Build (Low)": ["1h 23m 06s", 21005436, 13.57],
   };
   const num = n => n.toLocaleString("en-US");
+  const mtok = n => n < 1e6 ? Math.round(n / 1e3) + "k" : (n / 1e6).toFixed(n < 1e7 ? 2 : 1) + "M";
+  const short = key => key.replace("Special Build", "Special");
   const money = n => "$" + n.toFixed(2);
   const el = (tag, attrs = {}, text) => {
     const e = Object.assign(document.createElement(tag), attrs);
@@ -126,11 +135,16 @@
 
       const o = OPUS[key];
       const tr = el("tr");
-      const cells = r
-        ? [key, r.elapsed, r.api_time, num(r.total_tokens), num(r.output), money(r.cost)]
-        : [key, "—", "—", "—", "—", "—"];
-      cells.forEach(c => tr.append(el("td", {}, c)));
-      [o[0], num(o[1]), money(o[2])].forEach(c => tr.append(el("td", { className: "opus" }, c)));
+      const td = (text, className = "", title = "") => tr.append(el("td", { className, title }, text));
+      td(short(key));
+      if (r) {
+        td(r.elapsed, "sep"); td(r.api_time);
+        td(mtok(r.total_tokens), "", num(r.total_tokens)); td(mtok(r.output), "", num(r.output));
+        td(money(r.cost));
+      } else {
+        td("—", "sep"); ["—", "—", "—", "—"].forEach(c => td(c));
+      }
+      td(o[0], "opus sep"); td(mtok(o[1]), "opus", num(o[1])); td(money(o[2]), "opus");
       rows.append(tr);
     }
   }
