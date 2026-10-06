@@ -18,6 +18,7 @@ PRICES = {
     "gpt-6.1-sol": (2.00, 0.10, 10.00),
     "gpt-6-astra": (10.00, 1.00, 50.00),
 }
+EFFORTS = ["low", "medium", "high", "xhigh", "max", "ultra"]
 
 
 def fmt_duration(seconds):
@@ -124,6 +125,8 @@ def main(run_id):
     old = next((r for r in rows if r.get("play") == row["play"]), {})
     row = {**old, **row}
     rows = [r for r in rows if r.get("play") != row["play"]] + [row]
+    rows.sort(key=lambda r: (list(PRICES).index(r["model"]) if r["model"] in PRICES else 99,
+                             EFFORTS.index(r["reasoning_effort"]) if r["reasoning_effort"] in EFFORTS else 99))
     results_path.write_text(json.dumps(rows, indent=2) + "\n")
     print(json.dumps(row, indent=2))
 

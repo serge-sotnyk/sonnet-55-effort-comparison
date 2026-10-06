@@ -35,6 +35,41 @@
     "est_cost_main_model": 0.89
   },
   {
+    "effort": "gpt-6.1-sol \u00b7 ultra",
+    "agent": "codex",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "ultra",
+    "input": 8458560,
+    "cached_input": 7944192,
+    "output": 128834,
+    "reasoning_output": 29098,
+    "total_tokens": 8587394,
+    "est_cost_main_model": 2.89,
+    "elapsed": "21m 39s",
+    "turns": 1,
+    "rollouts": 6,
+    "tokens_by_model": {
+      "gpt-6.1-sol/ultra": {
+        "input": 8170516,
+        "cached_input": 7750144,
+        "output": 127692,
+        "reasoning_output": 28580
+      },
+      "codex-auto-review/low": {
+        "input": 288044,
+        "cached_input": 194048,
+        "output": 1142,
+        "reasoning_output": 518
+      }
+    },
+    "weekly_limit_before": 4.0,
+    "weekly_limit_after": 5.0,
+    "plan": "prolite",
+    "cli_version": "0.160.0",
+    "status": "Complete",
+    "play": "games/codex-gpt-6.1-sol-ultra/"
+  },
+  {
     "effort": "gpt-6-astra \u00b7 high",
     "agent": "codex",
     "model": "gpt-6-astra",
@@ -68,5 +103,40 @@
     "cli_version": "0.160.0",
     "status": "Complete",
     "play": "games/codex-gpt-6-astra-high/"
+  },
+  {
+    "effort": "gpt-6-astra \u00b7 ultra",
+    "agent": "codex",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "ultra",
+    "input": 5887626,
+    "cached_input": 5505536,
+    "output": 81676,
+    "reasoning_output": 9697,
+    "total_tokens": 5969302,
+    "est_cost_main_model": 12.31,
+    "elapsed": "18m 17s",
+    "turns": 1,
+    "rollouts": 7,
+    "tokens_by_model": {
+      "gpt-6-astra/ultra": {
+        "input": 5665767,
+        "cached_input": 5375744,
+        "output": 80583,
+        "reasoning_output": 9164
+      },
+      "codex-auto-review/low": {
+        "input": 221859,
+        "cached_input": 129792,
+        "output": 1093,
+        "reasoning_output": 533
+      }
+    },
+    "weekly_limit_before": 5.0,
+    "weekly_limit_after": 9.0,
+    "plan": "prolite",
+    "cli_version": "0.160.0",
+    "status": "Complete",
+    "play": "games/codex-gpt-6-astra-ultra/"
   }
 ]

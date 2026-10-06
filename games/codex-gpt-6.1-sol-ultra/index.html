@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#19211e" />
+    <title>Crown & Conquest — A Medieval Strategy Game</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%23202721'/%3E%3Cpath d='M8 12l7 6 5-10 5 10 7-6-3 18H11z' fill='%23d4b878'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="game-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Crown and Conquest, home"><span id="brand-crest"></span><span class="brand-type">CROWN <i>&</i> CONQUEST<small>A MEDIEVAL REAL-TIME STRATEGY</small></span></a>
+        <div class="resources" id="resources" aria-label="Settlement resources"></div>
+        <button class="age-display" id="age-display" title="Select your Town Center to advance your age"><span class="age-symbol" id="age-symbol"></span><span><small>YOUR CIVILIZATION</small><strong id="age-name">Dark Age</strong></span><span class="age-pips" id="age-pips"></span></button>
+        <div class="top-controls"><span class="game-clock" id="game-clock">00:00</span><button class="icon-button" id="pause-button" title="Pause · Space" aria-label="Pause game"></button><button class="icon-button" id="sound-button" title="Toggle sound" aria-label="Toggle sound"></button><button class="icon-button" id="menu-button" title="Game menu" aria-label="Open game menu"></button></div>
+      </header>
+      <main id="battlefield" aria-label="Medieval battlefield">
+        <canvas id="world" tabindex="0" aria-label="Isometric battlefield. Select units with a left click; command them with a right click."></canvas>
+        <div class="vignette"></div>
+        <aside class="objectives" id="objectives">
+          <div class="scenario-heading"><span class="tiny-diamond"></span> THE BORDERLANDS <button id="objective-toggle" class="plain-button" aria-label="Collapse objectives">−</button></div>
+          <div id="objective-content"><h1>A kingdom begins with you.</h1><p>Grow your settlement. Command your army.<br>Bring the rival kingdom to its knees.</p><div class="objective-list" id="objective-list"></div><div class="enemy-status"><span class="enemy-dot"></span><span>House of Blackthorn</span><strong id="enemy-age">Dark Age</strong></div></div>
+        </aside>
+        <div id="notification-stack" aria-live="polite"></div>
+        <div class="map-label"><span class="tiny-diamond"></span> THE KINGDOM OF ASHFORD <span class="tiny-diamond"></span></div>
+        <div class="tutorial-toast" id="tutorial-toast"><span id="tutorial-icon"></span><div><strong>Your story starts here.</strong><p>Villagers are gathering. Select your Town Center to train more, or select a villager and build.</p></div><button id="dismiss-tutorial" class="plain-button" title="Dismiss introduction" aria-label="Dismiss introduction">×</button></div>
+        <div class="command-hint" id="command-hint"><span class="key">LMB</span> Select <span class="hint-dot">·</span> <span class="key">RMB</span> Command <span class="hint-dot">·</span> <span class="key">WASD</span> Pan</div>
+        <div class="map-tools"><button id="idle-button" title="Select idle villager · ."><span id="idle-icon"></span><span id="idle-count">1</span><span class="idle-label">IDLE</span></button><span class="tool-divider"></span><button id="zoom-out" title="Zoom out" aria-label="Zoom out">−</button><span id="zoom-level">100%</span><button id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button><button id="home-button" title="Return to settlement · H" aria-label="Return to settlement"></button></div>
+        <div class="pause-badge" id="pause-badge" hidden><span>Ⅱ</span> GAME PAUSED <small>Press Space to continue</small></div>
+        <div id="placement-bar" hidden><span id="placement-icon"></span><strong id="placement-name"></strong><span>Left-click to place · Right-click or Esc to cancel</span></div>
+      </main>
+      <footer class="command-deck">
+        <section class="minimap-panel"><div class="panel-overline"><span>WORLD MAP</span><button id="explore-button" title="Center on your scout" aria-label="Find scout"></button></div><div class="minimap-frame"><canvas id="minimap" width="216" height="126" aria-label="World minimap. Click to move your view."></canvas><div class="minimap-corner tl"></div><div class="minimap-corner tr"></div><div class="minimap-corner bl"></div><div class="minimap-corner br"></div></div><div class="map-legend"><span><i class="player-dot"></i>Your kingdom</span><span><i class="enemy-dot"></i>Rival</span></div></section>
+        <section class="selection-panel" id="selection-panel"></section>
+        <section class="actions-panel"><div class="actions-heading"><span id="actions-heading">TOWN CENTER</span><span id="action-help">Build a thriving civilization</span><button id="help-button" title="How to play · ?" aria-label="How to play"></button></div><div id="actions"></div><div class="production-line" id="production-line"></div></section>
+      </footer>
+      <div id="tooltip" role="tooltip" hidden></div>
+      <div class="modal-backdrop" id="modal-backdrop" hidden><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
+    </div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

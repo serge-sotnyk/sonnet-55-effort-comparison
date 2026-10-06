@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <meta name="theme-color" content="#182422" />
+  <title>Crown & Conquest — The Borderlands</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='10' fill='%231b2826'/%3E%3Cpath d='M9 15l8 9 8-14 8 14 8-9-5 23H14z' fill='%23d2b371'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <a class="brand" href="#" title="Crown & Conquest"><span class="brand-mark" data-icon="crown"></span><span><strong>CROWN <i>&</i> CONQUEST</strong><small>BUILD A KINGDOM. LEAVE A LEGACY.</small></span></a>
+      <div class="resources" aria-label="Your resources">
+        <div class="resource food" title="Food · Gather berries or work farms"><span data-icon="food"></span><div><strong id="res-food">400</strong><small>FOOD</small></div><em id="workers-food">0</em></div>
+        <div class="resource wood" title="Wood · Send villagers to trees"><span data-icon="wood"></span><div><strong id="res-wood">420</strong><small>WOOD</small></div><em id="workers-wood">0</em></div>
+        <div class="resource gold" title="Gold · Send villagers to gold deposits"><span data-icon="gold"></span><div><strong id="res-gold">180</strong><small>GOLD</small></div><em id="workers-gold">0</em></div>
+        <div class="resource stone" title="Stone · Send villagers to stone deposits"><span data-icon="stone"></span><div><strong id="res-stone">220</strong><small>STONE</small></div><em id="workers-stone">0</em></div>
+        <div class="resource population" title="Population · Build houses for more room"><span data-icon="people"></span><div><strong id="res-population">10 <b>/ 25</b></strong><small>POPULATION</small></div></div>
+      </div>
+      <button class="age-indicator" id="age-button" title="Advance to the next age (U)"><span class="age-number" id="age-number">I</span><span><strong id="age-name">Dark Age</strong><small id="age-status">THE DAWN OF AN EMPIRE</small></span><span class="age-arrow">⌃</span></button>
+      <button class="icon-button menu-button" id="menu-button" title="Settings and controls" aria-label="Settings and controls" data-icon="settings"></button>
+    </header>
+
+    <main id="battlefield">
+      <canvas id="world" aria-label="Interactive medieval battlefield. Select units with left click and command with right click."></canvas>
+      <div class="map-heading"><div class="eyebrow"><span></span> SKIRMISH · THE KING'S LAND</div><h1>The Borderlands</h1><div class="map-subtitle">Two kingdoms. One crown.</div></div>
+      <div class="match-toolbar"><span class="live-dot"></span><span id="match-time">00:00</span><span class="toolbar-divider"></span><button id="speed-button" title="Change game speed">1×</button><button id="pause-button" title="Pause (Space)" aria-label="Pause" data-icon="pause"></button><button id="sound-button" title="Toggle sound" aria-label="Toggle sound" data-icon="volume-off"></button></div>
+      <aside class="objectives-panel">
+        <div class="panel-heading"><span data-icon="flag"></span><span>YOUR CAMPAIGN</span><button id="objectives-toggle" title="Toggle objectives" aria-label="Toggle objectives">−</button></div>
+        <div id="objectives-content"><h2>A kingdom in the making</h2><p>Grow your settlement. Raise your army.<br>Claim the rival's Town Center.</p><div class="objective" id="goal-economy"><span class="objective-check"></span><span>A thriving economy<small>Train 10 villagers</small></span><b id="goal-economy-value">7/10</b></div><div class="objective" id="goal-age"><span class="objective-check"></span><span>A new era<small>Reach the Feudal Age</small></span></div><div class="objective" id="goal-army"><span class="objective-check"></span><span>A force to be reckoned with<small>Assemble 12 soldiers</small></span><b id="goal-army-value">3/12</b></div><div class="objective final-objective"><span data-icon="swords"></span><span>Defeat the Crimson Kingdom</span></div></div>
+      </aside>
+      <div class="settlement-tag"><span class="faction-icon" data-icon="shield"></span><span>THE AZURE KINGDOM<small>Your settlement</small></span><span class="tag-dot"></span></div>
+      <div class="notification-list" id="notifications" aria-live="polite"></div>
+      <div id="placement-banner" class="placement-banner hidden"><span data-icon="hammer"></span><span id="placement-text">Place House</span><kbd>ESC</kbd><small>to cancel</small></div>
+      <div class="tutorial-card" id="tutorial-card"><button id="dismiss-tutorial" aria-label="Dismiss tip">×</button><div class="tip-icon" data-icon="compass"></div><div><strong>Your kingdom starts with you</strong><p>Select a villager, then <b>right-click</b> trees, berries, or gold to gather. Build an economy worthy of an empire.</p><button class="text-button" id="next-tip">NEXT TIP <span>→</span></button></div></div>
+      <div class="map-controls"><button class="icon-button" id="home-button" title="Return to settlement (H)" aria-label="Return to settlement" data-icon="home"></button><div class="zoom-controls"><button id="zoom-out" aria-label="Zoom out">−</button><span id="zoom-label">100%</span><button id="zoom-in" aria-label="Zoom in">+</button></div><button class="icon-button" id="help-button" title="How to play (?)" aria-label="How to play" data-icon="help"></button></div>
+      <div id="selection-box" class="selection-box hidden"></div>
+      <div id="pause-overlay" class="pause-overlay hidden"><span>Ⅱ</span><h2>The kingdom awaits</h2><p>Game paused · Press Space to resume</p></div>
+    </main>
+
+    <footer class="command-deck">
+      <section class="selection-panel"><div class="section-label"><span class="blue-dot"></span> THE AZURE KINGDOM <span id="selection-count"></span></div><div class="selection-details"><div id="selection-portrait" class="selection-portrait"></div><div class="selection-info"><h2 id="selection-name">Town Center</h2><span id="selection-kind">ECONOMY · DARK AGE</span><div class="health-track"><i id="selection-health"></i></div><span id="selection-hp">2400 / 2400</span></div></div><p id="selection-description">The heart of your kingdom. Train villagers and advance through the ages.</p><div class="selection-orders" id="selection-orders"></div></section>
+      <section class="action-panel"><div class="action-topline"><div class="action-tabs"><button id="tab-context" class="active" data-tab="context">TOWN CENTER</button><button id="tab-build" data-tab="build"><span data-icon="hammer"></span> BUILD</button><button id="tab-army" data-tab="army"><span data-icon="swords"></span> MILITARY</button></div><span class="queue-label" id="queue-label">TRAIN & DEVELOP</span></div><div class="action-grid" id="actions"></div><div class="command-hint" id="command-hint"><span class="mouse-mini"></span> LEFT CLICK to select <i>·</i> RIGHT CLICK to command <i>·</i> WASD to explore <i>·</i> SCROLL to zoom</div></section>
+      <section class="minimap-panel"><div class="minimap-title"><span data-icon="compass"></span><strong>THE BORDERLANDS</strong><span>44 × 44</span></div><div class="minimap-wrap"><canvas id="minimap" width="238" height="147" aria-label="Minimap. Click to navigate."></canvas><span class="compass-n">N</span></div><div class="map-legend"><span><i class="blue-dot"></i>YOU</span><span><i class="red-dot"></i>RIVAL</span><button id="find-enemy">LOCATE RIVAL ↗</button></div></section>
+    </footer>
+  </div>
+  <div id="tooltip" class="tooltip hidden"></div>
+  <div id="modal" class="modal-backdrop hidden"><section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button class="modal-close" id="modal-close" aria-label="Close">×</button><div class="modal-crest" data-icon="crown"></div><span class="eyebrow">CROWN & CONQUEST</span><h2 id="modal-title">Your field guide</h2><div id="modal-body"></div></section></div>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
