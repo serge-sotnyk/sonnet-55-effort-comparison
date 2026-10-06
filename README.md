@@ -41,6 +41,8 @@ Full metrics are in [results.json](results.json); per-run final result events ar
 
 ## How the runs differ from the original
 
+Step-by-step notes for repeating the runs, including the isolation pitfalls and the path fixes for GitHub Pages, are in [RUNBOOK.md](RUNBOOK.md).
+
 - Each run: `scripts/run-level.sh <level>` in a fresh empty folder (`~/sonnet-55-experiment/<level>`) outside any git repo.
 - Headless (`claude -p … --output-format stream-json`) instead of an interactive session; same prompt, no follow-up prompts.
 - `--safe-mode`, auto-memory disabled (`CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, `autoMemoryEnabled: false`), clean environment without API-key/base-URL overrides, subscription login.
