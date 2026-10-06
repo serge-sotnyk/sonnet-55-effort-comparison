@@ -1,0 +1,72 @@
+[
+  {
+    "effort": "gpt-6.1-sol \u00b7 high",
+    "agent": "codex",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "high",
+    "input": 2498019,
+    "cached_input": 2386048,
+    "output": 51600,
+    "reasoning_output": 9880,
+    "total_tokens": 2549619,
+    "elapsed": "21m 17s",
+    "turns": 1,
+    "rollouts": 2,
+    "weekly_limit_before": 3.0,
+    "weekly_limit_after": 3.0,
+    "plan": "prolite",
+    "cli_version": "0.160.0",
+    "status": "Complete",
+    "play": "games/codex-gpt-6.1-sol-high/",
+    "tokens_by_model": {
+      "gpt-6.1-sol/high": {
+        "input": 2264705,
+        "cached_input": 2185600,
+        "output": 50907,
+        "reasoning_output": 9722
+      },
+      "codex-auto-review/low": {
+        "input": 233314,
+        "cached_input": 200448,
+        "output": 693,
+        "reasoning_output": 158
+      }
+    },
+    "est_cost_main_model": 0.89
+  },
+  {
+    "effort": "gpt-6-astra \u00b7 high",
+    "agent": "codex",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "high",
+    "input": 1559495,
+    "cached_input": 1468544,
+    "output": 41145,
+    "reasoning_output": 5312,
+    "total_tokens": 1600640,
+    "est_cost_main_model": 3.96,
+    "elapsed": "18m 14s",
+    "turns": 1,
+    "rollouts": 2,
+    "tokens_by_model": {
+      "gpt-6-astra/high": {
+        "input": 1378948,
+        "cached_input": 1316992,
+        "output": 40405,
+        "reasoning_output": 5040
+      },
+      "codex-auto-review/low": {
+        "input": 180547,
+        "cached_input": 151552,
+        "output": 740,
+        "reasoning_output": 272
+      }
+    },
+    "weekly_limit_before": 3.0,
+    "weekly_limit_after": 4.0,
+    "plan": "prolite",
+    "cli_version": "0.160.0",
+    "status": "Complete",
+    "play": "games/codex-gpt-6-astra-high/"
+  }
+]

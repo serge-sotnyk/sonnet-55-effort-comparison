@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Crownfall — A kingdom of your own</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%2326332c'/%3E%3Cpath d='M7 13l7 8 6-13 6 13 7-8-3 18H10z' fill='%23dfb86c'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main id="app">
+      <canvas
+        id="world"
+        aria-label="Isometric strategy battlefield. Select units with left click and command them with right click."
+      ></canvas>
+      <div class="vignette"></div>
+      <header class="topbar">
+        <div class="brand">
+          <svg viewBox="0 0 40 40">
+            <path d="M6 11l8 9 6-14 6 14 8-9-4 20H10z" />
+            <path d="M10 35h20" />
+          </svg>
+          <div>CROWNFALL<small>A KINGDOM OF YOUR OWN</small></div>
+        </div>
+        <div class="resource-bar" id="resources"></div>
+        <div class="top-actions">
+          <button id="sound-btn" title="Toggle sound" aria-label="Toggle sound">
+            ♪</button
+          ><button id="pause-btn" title="Pause (Space)" aria-label="Pause game">
+            Ⅱ</button
+          ><button
+            id="menu-btn"
+            title="Game settings"
+            aria-label="Game settings"
+          >
+            ☰
+          </button>
+        </div>
+      </header>
+      <aside class="chapter-panel">
+        <div class="eyebrow">
+          <span class="tiny-diamond"></span> THE BORDERLANDS
+          <span class="chapter-tag">SKIRMISH</span>
+        </div>
+        <h1>A humble beginning.</h1>
+        <p id="objective-description">
+          Raise a settlement. Forge an army. Claim the realm.
+        </p>
+        <div class="objective-list" id="objectives"></div>
+        <button class="text-button" id="guide-btn">
+          Field guide <span>↗</span>
+        </button>
+      </aside>
+      <aside class="map-panel">
+        <div class="map-heading">
+          <span><i class="green-dot"></i> YOUR KINGDOM</span
+          ><span id="time">00:00</span>
+        </div>
+        <canvas
+          id="minimap"
+          width="200"
+          height="142"
+          aria-label="Minimap. Click to move the camera."
+        ></canvas>
+        <div class="map-legend">
+          <span><i class="legend-player"></i> You</span
+          ><span><i class="legend-enemy"></i> House Ashford</span>
+        </div>
+      </aside>
+      <div class="age-badge">
+        <span id="age-number">I</span>
+        <div>
+          <small>THE AGE OF</small><strong id="age-name">Darkness</strong>
+        </div>
+        <button id="speed-btn" title="Change game speed">1×</button>
+      </div>
+      <div id="placement-hint" class="placement-hint hidden"></div>
+      <div id="toast-container" aria-live="polite"></div>
+      <div id="tooltip" class="tooltip hidden"></div>
+      <div class="bottom-area">
+        <section class="selection-panel" id="selection-panel"></section>
+        <section class="command-panel">
+          <div class="command-heading">
+            <div class="tabs">
+              <button data-tab="build" class="active">Build</button
+              ><button data-tab="military">Military</button
+              ><button data-tab="advance">Advance</button>
+            </div>
+            <span id="command-context">SHAPE YOUR SETTLEMENT</span>
+          </div>
+          <div id="commands" class="commands"></div>
+        </section>
+      </div>
+      <footer class="control-bar">
+        <span
+          ><kbd>LEFT CLICK</kbd> Select <b>·</b> <kbd>RIGHT CLICK</kbd> Command
+          <b>·</b> <kbd>W A S D</kbd> Pan <b>·</b> <kbd>SCROLL</kbd> Zoom</span
+        ><span
+          ><i class="green-dot"></i>
+          <span id="status-text">Your reign awaits</span
+          ><button id="home-btn" title="Return to settlement (H)">
+            ⌂
+          </button></span
+        >
+      </footer>
+      <div id="modal-root"></div>
+    </main>
+    <script src="game.js"></script>
+  </body>
+</html>

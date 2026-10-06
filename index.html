@@ -87,11 +87,34 @@
     cache reads and cache writes; hover a token count for the exact number. Opus figures are from the original repository.
   </p>
 
+  <h2>Bonus: Codex with the same prompt</h2>
+  <p class="lede">
+    An additional experiment, not part of the original comparison: the same original prompt run once through the Codex CLI
+    at <code>high</code> reasoning effort with two OpenAI models, in fresh isolated folders without the user's instructions or memory.
+  </p>
+  <div class="cards" id="codex-cards"></div>
+  <div class="table-wrap" style="margin-top: 16px">
+    <table>
+      <thead>
+        <tr>
+          <th>Build</th><th>Elapsed</th><th>Tokens</th><th>Input (cached)</th><th>Output</th><th>Est. cost</th><th>Codex weekly limit</th>
+        </tr>
+      </thead>
+      <tbody id="codex-rows"></tbody>
+    </table>
+  </div>
+  <p class="note">
+    Codex reports tokens, not dollars. Input includes cached input; tokens also include the built-in approval reviewer
+    (<code>codex-auto-review</code>, about 0.2M per run). The cost estimate covers the main model only and uses third-party list prices
+    (gpt-6.1-sol $2 / $0.10 cached / $10 output, gpt-6-astra $10 / $1 / $50 per 1M tokens). The weekly limit is the Codex subscription's
+    own counter and is not comparable with Claude's.
+  </p>
+
   <h2>Sources</h2>
   <ul>
     <li><a href="https://youtu.be/kQFzX_hKHns">Original video</a> · <a href="https://github.com/Barty-Bart/opus-55-effort-comparison">original Opus 5.5 repository</a></li>
     <li><a href="prompts/original.txt">Original prompt</a> · <a href="prompts/special-build.txt">Special Build prompt</a></li>
-    <li><a href="results.json">results.json</a> — full metrics per run</li>
+    <li><a href="results.json">results.json</a> · <a href="results-codex.json">results-codex.json</a> — full metrics per run</li>
     <li><a href="https://github.com/serge-sotnyk/sonnet-55-effort-comparison">Repository</a> — game source, run scripts and method</li>
   </ul>
 </main>
@@ -150,6 +173,34 @@
   }
 
   fetch("results.json").then(r => r.json()).then(render).catch(() => render([]));
+
+  function renderCodex(results) {
+    const cards = document.getElementById("codex-cards");
+    const rows = document.getElementById("codex-rows");
+    for (const r of results) {
+      const name = `${r.model} · ${r.reasoning_effort}`;
+      const cost = r.est_cost_main_model == null ? "—" : "~" + money(r.est_cost_main_model);
+      const card = el("a", { className: "card", href: r.play });
+      card.append(el("div", { className: "name" }, name));
+      card.append(el("div", { className: "meta" }, `${r.elapsed} · ${cost}`));
+      cards.append(card);
+
+      const tr = el("tr");
+      const td = (text, title = "") => tr.append(el("td", { title }, text));
+      const nameCell = el("td");
+      nameCell.append(el("a", { href: r.play }, name));
+      tr.append(nameCell);
+      td(r.elapsed);
+      td(mtok(r.total_tokens), num(r.total_tokens));
+      td(`${mtok(r.input)} (${mtok(r.cached_input)})`, `${num(r.input)} (${num(r.cached_input)} cached)`);
+      td(mtok(r.output), num(r.output));
+      td(cost);
+      td(`${r.weekly_limit_before}% → ${r.weekly_limit_after}%`);
+      rows.append(tr);
+    }
+  }
+
+  fetch("results-codex.json").then(r => r.json()).then(renderCodex).catch(() => {});
 </script>
 </body>
 </html>

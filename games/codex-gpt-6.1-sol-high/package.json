@@ -1,0 +1,13 @@
+{
+  "name": "crownfall-rts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "python3 -m http.server 5173 --bind 0.0.0.0",
+    "test": "node tests/game.test.cjs",
+    "test:battle": "node tests/battle.cjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.58.0"
+  }
+}

@@ -1,0 +1,1 @@
+{"name":"crown-and-covenant","version":"1.0.0","private":true,"type":"module","scripts":{"start":"node server.mjs","test":"node tests/smoke.mjs && node tests/campaign.mjs"},"devDependencies":{"@playwright/test":"^1.63.0"}}

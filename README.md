@@ -23,6 +23,17 @@ Then open `http://127.0.0.1:8766/games/<level>/`.
 
 Full metrics are in [results.json](results.json); per-run final result events are in `runs/<level>/result.json`.
 
+## Codex runs (same original prompt)
+
+| Build | Elapsed | Total tokens | Main model tokens (in / out) | Est. cost (main model) | Codex weekly limit |
+|---|---:|---:|---:|---:|---|
+| [gpt-6.1-sol · high](games/codex-gpt-6.1-sol-high/) | 21m 17s | 2,549,619 | 2,264,705 / 50,907 | ~$0.89 | 3% → 3% |
+| [gpt-6-astra · high](games/codex-gpt-6-astra-high/) | 18m 14s | 1,600,640 | 1,378,948 / 40,405 | ~$3.96 | 3% → 4% |
+
+- `scripts/run-codex.sh <model> <effort>` runs `codex exec --json` (CLI 0.160.0) in a fresh folder with an isolated `CODEX_HOME` that shares only the login, so the user's `AGENTS.md`, config, skills, plugins and memories are not loaded. Apps, plugins, computer use and external-browser use are disabled; `--approve-for-me` (workspace-write sandbox with automatic approval review) with network access enabled.
+- `scripts/collect-codex.py` sums token usage from all session rollouts of the run, including the `codex-auto-review` approval reviewer (~0.2M tokens per run), and reads the weekly limit from the rollouts' rate-limit snapshots. Metrics are in [results-codex.json](results-codex.json).
+- Input tokens include cached input (OpenAI convention). The dollar estimate uses third-party list prices (gpt-6.1-sol $2 / $0.10 cached / $10 output, gpt-6-astra $10 / $1 / $50 per 1M) and excludes the reviewer, which has no public price.
+
 ## How the runs differ from the original
 
 - Each run: `scripts/run-level.sh <level>` in a fresh empty folder (`~/sonnet-55-experiment/<level>`) outside any git repo.

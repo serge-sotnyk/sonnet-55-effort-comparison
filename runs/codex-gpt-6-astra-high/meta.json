@@ -1,0 +1,13 @@
+{
+  "level": "codex-gpt-6-astra-high",
+  "agent": "codex",
+  "model": "gpt-6-astra",
+  "effort": "high",
+  "prompt": "original.txt",
+  "cli_version": "0.160.0",
+  "work_dir": "~/codex-experiment/codex-gpt-6-astra-high",
+  "codex_home": "~/codex-experiment/.homes/codex-gpt-6-astra-high",
+  "started_utc": "2026-10-05T22:23:51Z",
+  "wall_seconds": 1094,
+  "exit_code": 0
+}
