@@ -36,7 +36,7 @@
     background: var(--surface); text-decoration: none; color: var(--text);
   }
   a.card:hover { border-color: var(--accent); background: var(--accent-soft); }
-  @media (min-width: 640px) { #codex-cards { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 640px) { #codex-cards { grid-template-columns: repeat(4, 1fr); } }
   .card .name { font-weight: 600; font-size: 1.05rem; }
   .card .meta { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
   .card.pending { color: var(--pending); border-style: dashed; background: transparent; }
@@ -90,8 +90,9 @@
 
   <h2>Bonus: Codex with the same prompt</h2>
   <p class="lede">
-    An additional experiment, not part of the original comparison: the same original prompt run once through the Codex CLI
-    at <code>high</code>, <code>xhigh</code> and <code>ultra</code> reasoning effort with two OpenAI models, in fresh isolated folders without the user's instructions or memory.
+    An additional experiment, not part of the original comparison: the same prompts run once through the Codex CLI with two OpenAI models,
+    in fresh isolated folders without the user's instructions or memory. The original prompt ran at <code>high</code>, <code>xhigh</code> and
+    <code>ultra</code> reasoning effort; the detailed Special Build prompt ran at <code>low</code>, as in the original experiment.
   </p>
   <div class="cards" id="codex-cards"></div>
   <div class="table-wrap" style="margin-top: 16px">
@@ -106,7 +107,7 @@
   </div>
   <p class="note">
     Codex reports tokens, not dollars. Input includes cached input; tokens also include the built-in approval reviewer
-    (<code>codex-auto-review</code>, about 0.2M per run). The cost estimate covers the main model only and uses third-party list prices
+    (<code>codex-auto-review</code>, about 0.2M per run, up to 0.8M on the Special prompt). The cost estimate covers the main model only and uses third-party list prices
     (gpt-6.1-sol $2 / $0.10 cached / $10 output, gpt-6-astra $10 / $1 / $50 per 1M tokens). The weekly limit is the Codex subscription's
     own counter and is not comparable with Claude's. Three builds (sol · ultra, sol · xhigh, astra · xhigh) had root-absolute asset paths changed to relative ones so they run here.
   </p>
@@ -179,7 +180,7 @@
     const cards = document.getElementById("codex-cards");
     const rows = document.getElementById("codex-rows");
     for (const r of results) {
-      const name = `${r.model} · ${r.reasoning_effort}`;
+      const name = r.label || `${r.model} · ${r.reasoning_effort}`;
       const cost = r.est_cost_main_model == null ? "—" : "~" + money(r.est_cost_main_model);
       const card = el("a", { className: "card", href: r.play });
       card.append(el("div", { className: "name" }, name));

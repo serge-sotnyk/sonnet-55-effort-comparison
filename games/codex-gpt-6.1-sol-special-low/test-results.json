@@ -1,0 +1,321 @@
+[
+  {
+    "name": "Full setup applies to four players",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "players": [
+        {
+          "civ": "Britons",
+          "color": "#4fa9ec"
+        },
+        {
+          "civ": "Franks",
+          "color": "#d75b51"
+        },
+        {
+          "civ": "Byzantines",
+          "color": "#d4b74b"
+        },
+        {
+          "civ": "Vikings",
+          "color": "#af7ed5"
+        }
+      ]
+    }
+  },
+  {
+    "name": "Economy: chop, carry, drop off, deplete",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "wood": 30,
+      "stock": 0
+    }
+  },
+  {
+    "name": "Worker construction, paid training, all four ages and combat",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "age": 3,
+      "enemyHp": 0
+    }
+  },
+  {
+    "name": "Sheep capture, guard stability, recapture and control",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "own": 0,
+      "guarded": 0,
+      "recaptured": 1,
+      "x": 13.839411254969544
+    }
+  },
+  {
+    "name": "Hunting sheep and boar produces food",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "sheepFood": 24,
+      "total": 48,
+      "boar": true
+    }
+  },
+  {
+    "name": "Deer flee and wolves threaten units",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "deerX": 14.160588745030456,
+      "damage": 20
+    }
+  },
+  {
+    "name": "Fishing economy returns food to a shoreline Dock",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "gain": 36,
+      "fish": 0
+    }
+  },
+  {
+    "name": "Land / sea restrictions and galley combat",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "landX": 10,
+      "shipX": 18,
+      "enemyHp": 0
+    }
+  },
+  {
+    "name": "Transport loads, sails and unloads land units",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "loaded": true,
+      "landX": 27.5,
+      "shipX": 25.299999999999997
+    }
+  },
+  {
+    "name": "Garrison, defensive fire, release, Town Bell resumes work",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "sheltered": true,
+      "damage": true,
+      "task": "gather"
+    }
+  },
+  {
+    "name": "Manual garrison order releases units without immediate re-entry",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "entered": true,
+      "resumed": "gather"
+    }
+  },
+  {
+    "name": "Repairs consume resources; monks heal living units",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "buildingHp": 350,
+      "knightHp": 110,
+      "woodUsed": 13.899999999797728
+    }
+  },
+  {
+    "name": "Monk conversion delay, relic collection and gold income",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "relics": 1,
+      "income": 4.99999999992724,
+      "delay": true,
+      "converted": 0
+    }
+  },
+  {
+    "name": "Relics drop on monk death and Monastery destruction",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "relics": 3
+    }
+  },
+  {
+    "name": "Actual land trade route yields distance-based gold",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "income": 70,
+      "stopped": true,
+      "trips": 2
+    }
+  },
+  {
+    "name": "Actual sea trade route yields gold",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "income": 45
+    }
+  },
+  {
+    "name": "Height advantage is exactly +25% / -25%",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "high": 6.25,
+      "low": 3.75
+    }
+  },
+  {
+    "name": "Age locks, costs, population limits and upgrades enforced",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "locked": true,
+      "funds": true,
+      "pop": true
+    }
+  },
+  {
+    "name": "Cheat additions, reveal, instant queues and controllable Cobra",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "add": 10000,
+      "enemyHp": 0
+    }
+  },
+  {
+    "name": "Four-player AI progresses its economy and ages",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "players": [
+        {
+          "age": 2,
+          "workers": 8,
+          "army": 6
+        },
+        {
+          "age": 2,
+          "workers": 14,
+          "army": 8
+        },
+        {
+          "age": 2,
+          "workers": 9,
+          "army": 14
+        }
+      ]
+    }
+  },
+  {
+    "name": "Fire and Demolition Ships deal real naval damage",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "burned": true,
+      "demoHp": 0,
+      "blastHp": 25
+    }
+  },
+  {
+    "name": "Villagers repair coastal ships and siege engines",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "ship": 125,
+      "ram": 220
+    }
+  },
+  {
+    "name": "Island AI builds fishing economy, fleet and transport invasion",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "fish": 3,
+      "fleet": 8,
+      "landings": 8,
+      "humanTc": 364
+    }
+  },
+  {
+    "name": "Enter chat executes cheats without gameplay shortcuts",
+    "status": "PASS"
+  },
+  {
+    "name": "Local voice clips decode as real non-silent audio",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "duration": 1.4953125,
+      "peak": 0.8719446063041687
+    }
+  },
+  {
+    "name": "Spoken acknowledgement plays and repeat clicks replace it",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "oldPaused": true,
+      "newPlaying": true
+    }
+  },
+  {
+    "name": "Separate volume sliders and mute respond",
+    "status": "PASS"
+  },
+  {
+    "name": "Editor placement, undo, redo, save and reload",
+    "status": "PASS"
+  },
+  {
+    "name": "Editor file export and import round trip",
+    "status": "PASS"
+  },
+  {
+    "name": "Editor validates fish / ships on land, missing starts, overlaps",
+    "status": "PASS",
+    "detail": {
+      "pass": true,
+      "errors": [
+        "Lord Beaumont needs a Town Center / starting location.",
+        "Jarl Eirik needs a Town Center / starting location.",
+        "Empress Irene needs a Town Center / starting location.",
+        "fish must be placed on water.",
+        "Galley must be placed on water.",
+        "Overlapping Town Center and House."
+      ]
+    }
+  },
+  {
+    "name": "Editor launches a playable custom match",
+    "status": "PASS"
+  },
+  {
+    "name": "Desktop layouts at 1280×720 and 1440×900",
+    "status": "PASS"
+  },
+  {
+    "name": "Diplomacy UI proposal changes relations",
+    "status": "PASS"
+  },
+  {
+    "name": "Restart starts a fresh match",
+    "status": "PASS"
+  },
+  {
+    "name": "No browser runtime errors",
+    "status": "PASS"
+  }
+]

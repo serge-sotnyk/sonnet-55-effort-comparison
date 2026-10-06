@@ -1,0 +1,13 @@
+{
+  "level": "codex-gpt-6.1-sol-special-low",
+  "agent": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "low",
+  "prompt": "special-build.txt",
+  "cli_version": "0.160.0",
+  "work_dir": "~/codex-experiment/codex-gpt-6.1-sol-special-low",
+  "codex_home": "~/codex-experiment/.homes/codex-gpt-6.1-sol-special-low",
+  "started_utc": "2026-10-06T13:19:07Z",
+  "wall_seconds": 2114,
+  "exit_code": 0
+}

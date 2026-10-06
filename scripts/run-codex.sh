@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
-# Runs one Codex build of the original prompt in a fresh, empty folder.
-# Usage: scripts/run-codex.sh <model> <effort>     e.g. gpt-6.1-sol high
+# Runs one Codex build of the original or Special prompt in a fresh, empty folder.
+# Usage: scripts/run-codex.sh <model> <effort> [original|special]
+#        e.g. gpt-6.1-sol high          gpt-6-astra low special
 set -euo pipefail
 
 MODEL="${1:?usage: run-codex.sh <model> <effort>}"
 EFFORT="${2:?usage: run-codex.sh <model> <effort>}"
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 WORK_ROOT="${WORK_ROOT:-$HOME/codex-experiment}"
-RUN_ID="codex-${MODEL}-${EFFORT}"
-PROMPT_FILE="$REPO/prompts/original.txt"
+PROMPT="${3:-original}"
+case "$PROMPT" in
+  original) RUN_ID="codex-${MODEL}-${EFFORT}"; PROMPT_FILE="$REPO/prompts/original.txt" ;;
+  special) RUN_ID="codex-${MODEL}-special-${EFFORT}"; PROMPT_FILE="$REPO/prompts/special-build.txt" ;;
+  *) echo "unknown prompt: $PROMPT" >&2; exit 2 ;;
+esac
 
 WORK="$WORK_ROOT/$RUN_ID"
 # Isolated CODEX_HOME: only the login is shared (symlink), so the user's

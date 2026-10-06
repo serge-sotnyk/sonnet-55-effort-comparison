@@ -1,0 +1,13 @@
+{
+  "name": "crown-and-tide",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "prettier": "^3.9.9"
+  }
+}

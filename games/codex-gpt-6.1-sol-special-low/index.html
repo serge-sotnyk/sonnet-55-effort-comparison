@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Crown & Tide — A medieval strategy game</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="menu" class="screen">
+      <div class="menu-art">
+        <canvas id="vista"></canvas>
+        <div class="brand">
+          <div class="eyebrow">A MEDIEVAL REAL-TIME STRATEGY GAME</div>
+          <h1>CROWN<span>&</span>TIDE</h1>
+          <p>Raise a kingdom. Command the coast.</p>
+        </div>
+        <div class="art-caption">
+          THE FRONTIER AWAITS <span>✦</span> EST. 1024
+        </div>
+      </div>
+      <div class="setup">
+        <div class="eyebrow">YOUR NEXT CHRONICLE</div>
+        <h2>Found an empire</h2>
+        <p class="muted">
+          From a handful of villagers to a kingdom of your own.
+        </p>
+        <form id="setupForm">
+          <div class="form-grid">
+            <label
+              >Your name<input
+                name="name"
+                value="Aldric"
+                maxlength="22" /></label
+            ><label
+              >Banner color<select name="color">
+                <option value="#4fa9ec">Azure blue</option>
+                <option value="#dfb94c">Royal gold</option>
+                <option value="#55b993">Forest green</option>
+                <option value="#bd78cc">Imperial violet</option>
+              </select></label
+            >
+            <label class="wide"
+              >Civilization<select name="civ">
+                <option>Britons</option>
+                <option>Franks</option>
+                <option>Byzantines</option>
+                <option>Vikings</option></select
+              ><small id="civBonus"></small
+            ></label>
+            <label
+              >Map<select name="map">
+                <option value="coast">Coastal kingdoms</option>
+                <option value="land">Highland frontier</option>
+                <option value="islands">Island realms</option>
+              </select></label
+            ><label
+              >Size<select name="size">
+                <option value="40">Small · 40 × 40</option>
+                <option value="52" selected>Medium · 52 × 52</option>
+                <option value="64">Large · 64 × 64</option>
+              </select></label
+            >
+            <label
+              >Computer rivals<select name="opponents">
+                <option value="1">One rival</option>
+                <option value="2" selected>Two rivals</option>
+                <option value="3">Three rivals</option>
+              </select></label
+            ><label
+              >Difficulty<select name="difficulty">
+                <option value="easy">Relaxed</option>
+                <option value="normal" selected>Standard</option>
+                <option value="hard">Challenging</option>
+              </select></label
+            >
+            <label
+              >Diplomacy<select name="teams">
+                <option value="ffa">Free for all</option>
+                <option value="teams">Two teams</option>
+              </select></label
+            ><label
+              >Starting age<select name="age">
+                <option value="0">Dark Age</option>
+                <option value="1">Feudal Age</option>
+                <option value="2">Castle Age</option>
+                <option value="3">Imperial Age</option>
+              </select></label
+            >
+            <label
+              >Starting resources<select name="resources">
+                <option value="standard">Standard · 500 each</option>
+                <option value="rich">Abundant · 2,000 each</option>
+                <option value="scarce">Scarce · 200 each</option>
+              </select></label
+            ><label
+              >Visibility<select name="visibility">
+                <option value="fog">Exploration & fog</option>
+                <option value="explored">Explored map</option>
+                <option value="all">All visible</option>
+              </select></label
+            >
+            <label
+              >Game speed<select name="speed">
+                <option value="1">Normal</option>
+                <option value="1.5">Fast</option>
+                <option value="0.75">Relaxed</option>
+              </select></label
+            ><label
+              >Map seed<input name="seed" value="1024" type="number"
+            /></label>
+          </div>
+          <div class="checks">
+            <label
+              ><input name="cheats" type="checkbox" checked /> Allow
+              cheats</label
+            ><label
+              ><input name="tips" type="checkbox" checked /> Newcomer
+              tips</label
+            >
+          </div>
+          <button class="primary" type="submit">
+            ⚔ Begin your reign <span>→</span>
+          </button>
+        </form>
+        <div class="menu-links">
+          <button id="openEditor">✎ Map editor</button
+          ><button id="menuHelp">Field guide</button>
+        </div>
+        <div class="footnote">
+          Original procedural art · Local simulation · No account required
+        </div>
+      </div>
+    </div>
+    <div id="game" hidden>
+      <canvas id="world"></canvas>
+      <header id="topbar">
+        <div class="crest">♜</div>
+        <div id="playerLabel"></div>
+        <div id="resources"></div>
+        <div id="ageLabel"></div>
+        <button id="diplomacyBtn">Diplomacy</button
+        ><button id="audioBtn">♫</button><button id="helpBtn">?</button
+        ><button id="pauseBtn">Ⅱ</button><button id="exitBtn">Menu</button>
+      </header>
+      <div id="objective">
+        <span class="eyebrow">YOUR CHRONICLE</span>
+        <div id="objectiveText">Build an economy. Defeat hostile kingdoms.</div>
+      </div>
+      <div id="notifications"></div>
+      <div id="tip"></div>
+      <div id="placementHint" hidden></div>
+      <footer id="bottom">
+        <div id="selectionPanel">
+          <div class="empty-selection">
+            <span>♜</span><strong>Your kingdom awaits</strong
+            ><small>Select a villager to begin. Right-click to command.</small>
+          </div>
+        </div>
+        <div id="commands"></div>
+        <div id="minimapWrap">
+          <canvas id="minimap" width="190" height="150"></canvas>
+          <div id="mapLabel"></div>
+        </div>
+      </footer>
+      <input
+        id="chat"
+        placeholder="Enter a message or cheat code…"
+        hidden
+        autocomplete="off"
+      />
+      <div id="editorBar" hidden></div>
+    </div>
+    <div id="modal" hidden>
+      <div class="modal-card">
+        <button id="closeModal" class="close">×</button>
+        <div id="modalContent"></div>
+      </div>
+    </div>
+    <script src="game.js"></script>
+  </body>
+</html>

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Extracts the metrics of a Codex run into results-codex.json.
 
-Usage: scripts/collect-codex.py <run-id>      e.g. codex-gpt-6.1-sol-high
+Usage: scripts/collect-codex.py <run-id>      e.g. codex-gpt-6.1-sol-high, codex-gpt-6-astra-special-low
 Token usage comes from the session rollouts in the run's isolated CODEX_HOME
 (every rollout there belongs to this run, subagents included); the weekly
 limit comes from the first and last rate_limits snapshot.
@@ -98,8 +98,11 @@ def main(run_id):
 
     turns = sum(1 for line in (run_dir / "stream.jsonl").read_text().splitlines()
                 if '"type":"turn.completed"' in line)
+    special = meta["prompt"] == "special-build.txt"
     row = {
         "effort": f"{meta['model']} · {meta['effort']}",
+        "label": f"{meta['model']} · Special ({meta['effort']})" if special else f"{meta['model']} · {meta['effort']}",
+        "prompt": meta["prompt"],
         "agent": "codex",
         "model": meta["model"],
         "reasoning_effort": meta["effort"],
@@ -126,6 +129,7 @@ def main(run_id):
     row = {**old, **row}
     rows = [r for r in rows if r.get("play") != row["play"]] + [row]
     rows.sort(key=lambda r: (list(PRICES).index(r["model"]) if r["model"] in PRICES else 99,
+                             r.get("prompt", "original.txt") != "original.txt",
                              EFFORTS.index(r["reasoning_effort"]) if r["reasoning_effort"] in EFFORTS else 99))
     results_path.write_text(json.dumps(rows, indent=2) + "\n")
     print(json.dumps(row, indent=2))

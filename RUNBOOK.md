@@ -37,6 +37,8 @@ Run one build at a time. Builds tend to pick the same ports (5173, 8000, 8765) a
 
 ## Codex runs (`scripts/run-codex.sh`)
 
+Usage: `scripts/run-codex.sh <model> <effort> [original|special]`. The Special prompt runs at `low`, like the original Special Build, and gets the run id `codex-<model>-special-<effort>`.
+
 **Isolation**
 - **`--ignore-user-config` does not stop Codex from loading the user's global `~/.codex/AGENTS.md`, and neither does `-c project_doc_max_bytes=0`.** The only reliable fix is a separate `CODEX_HOME` per run (`~/codex-experiment/.homes/<id>`) containing just a symlink to `~/.codex/auth.json`. That also keeps out the user's config, skills, plugins and memories, and keeps the run's session logs separate for metrics.
 - Check isolation with a probe before real runs: ask "Do you have any instructions from an AGENTS.md file or user-level custom instructions? Quote their first line or reply NONE." It must answer `NONE`.

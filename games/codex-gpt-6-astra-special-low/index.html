@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Crown & Tide — A medieval real-time strategy game</title><link rel="stylesheet" href="style.css"></head><body>
+<canvas id="world"></canvas><div id="vignette"></div>
+<header id="top" class="hidden"><div class="brand">CROWN <em>&</em> TIDE<span id="ageLabel">DARK AGE</span></div><div id="resources"></div><div class="topActions"><button id="bell" title="Town Bell: shelter villagers; ring again to resume work">♧ Bell</button><button id="dipBtn">Diplomacy</button><button id="helpBtn">? Guide</button><button id="menuBtn">Ⅱ Menu</button></div></header>
+<div id="objective" class="hidden"><span class="eyebrow">YOUR CHRONICLE</span><b id="objectiveText">Build a kingdom. Leave a legacy.</b><small id="tipText">Select villagers and right-click resources to gather.</small></div>
+<div id="toasts"></div><div id="selectionBox"></div><div id="hoverTip"></div>
+<footer id="hud" class="hidden"><section id="mapPanel"><canvas id="minimap" width="216" height="146"></canvas><div><span id="clock">00:00</span><span id="mapName">THE FRONTIER</span></div></section><section id="portrait"><canvas id="portraitCanvas" width="115" height="112"></canvas><div><span class="eyebrow" id="selectionKind">YOUR SETTLEMENT</span><h2 id="selectionName">Town Center</h2><div id="selectionStats"></div></div></section><section id="actionPanel"><div id="actionTabs"></div><div id="commands"></div></section></footer>
+<div id="chatWrap" class="hidden"><label>CHRONICLE / CHEATS <input id="chat" placeholder="Type a message or cheat, then press Enter" autocomplete="off"></label></div>
+<div id="modal" class="overlay"></div>
+<div id="editorBar" class="hidden"></div>
+<script src="game.js"></script><script src="render.js"></script><script src="ui.js"></script></body></html>
