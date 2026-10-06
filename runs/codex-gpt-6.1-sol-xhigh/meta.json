@@ -1,0 +1,13 @@
+{
+  "level": "codex-gpt-6.1-sol-xhigh",
+  "agent": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "xhigh",
+  "prompt": "original.txt",
+  "cli_version": "0.160.0",
+  "work_dir": "~/codex-experiment/codex-gpt-6.1-sol-xhigh",
+  "codex_home": "~/codex-experiment/.homes/codex-gpt-6.1-sol-xhigh",
+  "started_utc": "2026-10-06T08:49:52Z",
+  "wall_seconds": 2808,
+  "exit_code": 0
+}

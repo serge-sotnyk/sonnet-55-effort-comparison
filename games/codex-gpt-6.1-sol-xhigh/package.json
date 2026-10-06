@@ -1,0 +1,8 @@
+{
+  "name": "age-of-empires-kingdoms",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "start": "node server.js", "test": "node --test tests/simulation.test.js && node tests/campaign.mjs", "test:browser": "node tests/browser.mjs" },
+  "devDependencies": { "playwright": "^1.56.0" }
+}

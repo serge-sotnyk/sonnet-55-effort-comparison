@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import { Game } from '../src/game.js';
+import { playCampaign } from './campaign-strategy.js';
+const g = new Game('standard');
+const result = playCampaign(g);
+console.log(JSON.stringify(result, null, 2));
+assert.equal(result.result, 'victory', 'A full paid economy/construction/army strategy should be able to beat the AI.');
+assert.ok(result.player.stats.gathered > 4000);
+assert.ok(result.player.age >= 2);
+console.log('Full campaign passed.');

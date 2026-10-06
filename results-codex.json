@@ -35,6 +35,41 @@
     "est_cost_main_model": 0.89
   },
   {
+    "effort": "gpt-6.1-sol \u00b7 xhigh",
+    "agent": "codex",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "xhigh",
+    "input": 3102980,
+    "cached_input": 2905472,
+    "output": 103422,
+    "reasoning_output": 25472,
+    "total_tokens": 3206402,
+    "est_cost_main_model": 1.63,
+    "elapsed": "46m 48s",
+    "turns": 1,
+    "rollouts": 2,
+    "tokens_by_model": {
+      "gpt-6.1-sol/xhigh": {
+        "input": 2948318,
+        "cached_input": 2790016,
+        "output": 102951,
+        "reasoning_output": 25294
+      },
+      "codex-auto-review/low": {
+        "input": 154662,
+        "cached_input": 115456,
+        "output": 471,
+        "reasoning_output": 178
+      }
+    },
+    "weekly_limit_before": 9.0,
+    "weekly_limit_after": 10.0,
+    "plan": "prolite",
+    "cli_version": "0.160.0",
+    "status": "Complete",
+    "play": "games/codex-gpt-6.1-sol-xhigh/"
+  },
+  {
     "effort": "gpt-6.1-sol \u00b7 ultra",
     "agent": "codex",
     "model": "gpt-6.1-sol",
@@ -103,6 +138,41 @@
     "cli_version": "0.160.0",
     "status": "Complete",
     "play": "games/codex-gpt-6-astra-high/"
+  },
+  {
+    "effort": "gpt-6-astra \u00b7 xhigh",
+    "agent": "codex",
+    "model": "gpt-6-astra",
+    "reasoning_effort": "xhigh",
+    "input": 2990193,
+    "cached_input": 2803072,
+    "output": 84254,
+    "reasoning_output": 16335,
+    "total_tokens": 3074447,
+    "est_cost_main_model": 8.35,
+    "elapsed": "40m 28s",
+    "turns": 1,
+    "rollouts": 2,
+    "tokens_by_model": {
+      "gpt-6-astra/xhigh": {
+        "input": 2840121,
+        "cached_input": 2692736,
+        "output": 83618,
+        "reasoning_output": 15990
+      },
+      "codex-auto-review/low": {
+        "input": 150072,
+        "cached_input": 110336,
+        "output": 636,
+        "reasoning_output": 345
+      }
+    },
+    "weekly_limit_before": 10.0,
+    "weekly_limit_after": 12.0,
+    "plan": "prolite",
+    "cli_version": "0.160.0",
+    "status": "Complete",
+    "play": "games/codex-gpt-6-astra-xhigh/"
   },
   {
     "effort": "gpt-6-astra \u00b7 ultra",
