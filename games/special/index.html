@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Age of Realms – a medieval RTS</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- ============ MAIN MENU ============ -->
+<div id="menu" class="screen">
+  <div class="title"><div class="crest"></div><h1>Age of Realms</h1><div class="sub">Grow a settlement · Advance through the ages · Conquer your rivals</div></div>
+  <div class="menubtns">
+    <button id="mm-play" class="big">Single Player Game</button>
+    <button id="mm-editor" class="big">Map Editor</button>
+    <button id="mm-help" class="big">Help &amp; Cheat Codes</button>
+    <button id="mm-audio" class="big">Audio Settings</button>
+  </div>
+  <div class="foot">Click anywhere to enable sound · Best at 1280×720 or larger</div>
+</div>
+
+<!-- ============ SETUP ============ -->
+<div id="setup" class="screen hidden">
+  <div class="panel wide">
+    <h2>Game Setup</h2>
+    <div class="cols">
+      <div class="col">
+        <label>Player name<input id="s-name" maxlength="18" value="Player"></label>
+        <label>Player colour<div id="s-colors" class="swatches"></div></label>
+        <label>Civilization<select id="s-civ"></select></label>
+        <div id="s-civinfo" class="civinfo"></div>
+      </div>
+      <div class="col">
+        <label>Map type<select id="s-map"></select></label>
+        <div id="s-mapdesc" class="hint"></div>
+        <label id="s-customrow" class="hidden">Custom map<select id="s-custom"></select></label>
+        <label>Map size<select id="s-size"></select></label>
+        <label>Map seed<span class="row"><input id="s-seed" value=""><button id="s-dice" title="Random seed">🎲</button></span></label>
+        <label>Computer opponents<select id="s-ai"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+        <label>Difficulty<select id="s-diff"><option value="0">Easy</option><option value="1" selected>Standard</option><option value="2">Hard</option><option value="3">Hardest</option></select></label>
+        <label>Teams<select id="s-teams"><option value="ffa">Free for all</option><option value="team1">Me + first computer vs the rest</option><option value="allai">Me vs allied computers</option></select></label>
+      </div>
+      <div class="col">
+        <label>Starting age<select id="s-age"><option value="0">Dark Age</option><option value="1">Feudal Age</option><option value="2">Castle Age</option><option value="3">Imperial Age</option></select></label>
+        <label>Starting resources<select id="s-res"><option value="none">None (0)</option><option value="std" selected>Standard (200 / 200 / 100 / 200)</option><option value="med">Medium (800 each)</option><option value="high">High (2000 each)</option></select></label>
+        <label>Visibility<select id="s-vis"><option value="normal">Normal (fog of war)</option><option value="explored">Explored (map known, fog remains)</option><option value="all">All visible</option></select></label>
+        <label>Game speed<select id="s-speed"><option value="1">Normal (1.0×)</option><option value="1.5" selected>Fast (1.5×)</option><option value="2">Faster (2×)</option><option value="3">Very fast (3×)</option></select></label>
+        <label class="chk"><input type="checkbox" id="s-cheats"> Allow cheats (press Enter in game)</label>
+        <label class="chk"><input type="checkbox" id="s-tips" checked> Newcomer tips</label>
+        <div id="s-warn" class="warn"></div>
+      </div>
+    </div>
+    <div class="btnrow"><button id="s-back">Back</button><button id="s-start" class="big gold">Start Game</button></div>
+  </div>
+</div>
+
+<!-- ============ HUD ============ -->
+<div id="hud" class="hidden">
+  <div id="topbar">
+    <div class="res" id="r-f" title="Food"><img><span>0</span></div>
+    <div class="res" id="r-w" title="Wood"><img><span>0</span></div>
+    <div class="res" id="r-g" title="Gold"><img><span>0</span></div>
+    <div class="res" id="r-s" title="Stone"><img><span>0</span></div>
+    <div class="res" id="r-pop" title="Population / housing"><img><span>0/0</span></div>
+    <div class="spacer"></div>
+    <div id="agelabel"></div>
+    <div id="clock">0:00</div>
+    <button id="tb-bell" title="Town Bell – recall villagers to shelter (toggle)">🔔 Town Bell</button>
+    <button id="tb-idle" title="Select next idle villager (.)">Idle</button>
+    <button id="tb-dip" title="Diplomacy &amp; tribute">Diplomacy</button>
+    <button id="tb-help" title="Help (F1)">Help</button>
+    <button id="tb-menu" title="Menu (Esc)">Menu</button>
+  </div>
+  <div id="toasts"></div>
+  <div id="captions"></div>
+  <div id="tipbox" class="hidden"><span id="tiptext"></span><button id="tipclose">×</button></div>
+  <div id="bottom">
+    <div id="mmwrap"><canvas id="minimap" width="236" height="124"></canvas></div>
+    <div id="selinfo"></div>
+    <div id="cmdwrap"><div id="cmdtitle"></div><div id="cmdcard"></div></div>
+  </div>
+  <div id="tooltip" class="hidden"></div>
+  <div id="chatwrap" class="hidden"><span id="chatlabel">Chat / cheat:</span><input id="chatinput" maxlength="80" autocomplete="off" spellcheck="false" placeholder="Type a message or cheat code, press Enter"></div>
+  <div id="chatlog"></div>
+  <div id="modeinfo" class="hidden"></div>
+</div>
+
+<!-- ============ MODALS ============ -->
+<div id="modal" class="screen hidden"><div class="panel" id="modalbox"></div></div>
+
+<!-- ============ EDITOR ============ -->
+<div id="editor" class="hidden">
+  <div id="ed-top">
+    <b>Map Editor</b>
+    <button id="ed-new">New / Generate</button>
+    <button id="ed-save">Save</button>
+    <button id="ed-load">Load</button>
+    <button id="ed-export">Export file</button>
+    <button id="ed-import">Import file</button>
+    <input type="file" id="ed-file" class="hidden" accept=".json,.aormap">
+    <button id="ed-undo">Undo</button><button id="ed-redo">Redo</button>
+    <button id="ed-validate">Validate</button>
+    <button id="ed-play" class="gold">▶ Play this map</button>
+    <button id="ed-exit">Exit to menu</button>
+    <span id="ed-status"></span>
+  </div>
+  <div id="ed-left">
+    <div class="edsec"><h4>Tool</h4><div id="ed-tools" class="toolgrid"></div></div>
+    <div class="edsec"><h4>Brush size: <span id="ed-bsv">2</span></h4><input type="range" id="ed-bs" min="1" max="9" value="2"></div>
+    <div class="edsec" id="ed-ownerbox"><h4>Owner</h4><div id="ed-owners"></div></div>
+    <div class="edsec"><h4>Palette</h4><div id="ed-palette"></div></div>
+    <div class="edsec"><h4>Players</h4><div id="ed-players"></div></div>
+  </div>
+  <div id="ed-bottom"><div id="ed-cur"></div><div id="ed-hint"></div></div>
+</div>
+<script src="js/data.js"></script>
+<script src="js/map.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/buildings.js"></script>
+<script src="js/render.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/ui2.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

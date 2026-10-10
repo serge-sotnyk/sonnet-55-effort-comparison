@@ -7,6 +7,7 @@ and upserts the summary row into results.json.
 """
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -20,6 +21,38 @@ def fmt_duration(seconds):
     h, rem = divmod(seconds, 3600)
     m, s = divmod(rem, 60)
     return f"{h}h {m:02d}m {s:02d}s" if h else f"{m}m {s:02d}s"
+
+
+def usage_from_stream(streams):
+    """Subscription usage from rate_limit_event events.
+
+    The 5-hour window can reset mid-run, so events are grouped by the window's
+    resetsAt and each window contributes its own last-minus-first utilization.
+    Values include anything else using the same account at the time.
+    """
+    windows, weekly = {}, []
+    for stream in streams:
+        for line in stream.read_text().splitlines():
+            if '"rate_limit_event"' not in line:
+                continue
+            info = json.loads(line).get("rate_limit_info", {}).get("unifiedWindows", {})
+            five, seven = info.get("five_hour"), info.get("seven_day")
+            if five:
+                windows.setdefault(five["resetsAt"], []).append(five["utilization"])
+            if seven:
+                weekly.append(seven["utilization"])
+    if not windows:
+        return None
+    pct = lambda x: round(x * 100)
+    return {
+        "session_windows": [
+            {"resets_at": datetime.fromtimestamp(k, timezone.utc).strftime("%Y-%m-%dT%H:%MZ"),
+             "from": pct(v[0]), "to": pct(v[-1])}
+            for k, v in sorted(windows.items())],
+        "session_used": pct(sum(v[-1] - v[0] for v in windows.values())),
+        "weekly_from": pct(weekly[0]) if weekly else None,
+        "weekly_to": pct(weekly[-1]) if weekly else None,
+    }
 
 
 def main(level):
@@ -88,6 +121,9 @@ def main(level):
                   else f"Ended: {result.get('subtype')} / exit {exit_code}",
         "play": f"games/{level}/",
     }
+    usage = usage_from_stream([stream for stream, _ in parts])
+    if usage:
+        row["usage_from_stream"] = usage
 
     (run_dir / "result.json").write_text(json.dumps(
         {k: v for k, v in result.items() if k not in ("session_id", "uuid", "result")},

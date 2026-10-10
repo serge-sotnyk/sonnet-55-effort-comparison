@@ -26,9 +26,17 @@ if git -C "$WORK" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 fi
 
 CLAUDE_BIN="$(command -v claude)"
+
+# Subscription usage snapshot (/usage is answered locally, no model call).
+usage_snapshot() {
+  (cd "$WORK" && env -i HOME="$HOME" USER="$USER" LOGNAME="${LOGNAME:-$USER}" PATH="$PATH" \
+    LANG="${LANG:-en_US.UTF-8}" TMPDIR="${TMPDIR:-/tmp}" TERM=xterm-256color \
+    "$CLAUDE_BIN" -p "/usage" --safe-mode < /dev/null 2>&1 | sed -n '/^Current/p') > "$1" || true
+}
 CLI_VERSION="$("$CLAUDE_BIN" --version | awk '{print $1}')"
 START_EPOCH="$(date +%s)"
 START_ISO="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+usage_snapshot "$RUN_DIR/usage-before.txt"
 echo "running" > "$RUN_DIR/status"
 
 # Clean environment, as from a fresh terminal: no inherited desktop-session,
@@ -51,6 +59,7 @@ EXIT_CODE=$?
 set -e
 
 END_EPOCH="$(date +%s)"
+usage_snapshot "$RUN_DIR/usage-after.txt"
 TILDE='~'
 cat > "$RUN_DIR/meta.json" <<EOF
 {

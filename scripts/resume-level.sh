@@ -25,9 +25,17 @@ PART=2
 while [ -e "$RUN_DIR/stream-$PART.jsonl" ]; do PART=$((PART + 1)); done
 
 CLAUDE_BIN="$(command -v claude)"
+
+# Subscription usage snapshot (/usage is answered locally, no model call).
+usage_snapshot() {
+  (cd "$WORK" && env -i HOME="$HOME" USER="$USER" LOGNAME="${LOGNAME:-$USER}" PATH="$PATH" \
+    LANG="${LANG:-en_US.UTF-8}" TMPDIR="${TMPDIR:-/tmp}" TERM=xterm-256color \
+    "$CLAUDE_BIN" -p "/usage" --safe-mode < /dev/null 2>&1 | sed -n '/^Current/p') > "$1" || true
+}
 CLI_VERSION="$("$CLAUDE_BIN" --version | awk '{print $1}')"
 START_EPOCH="$(date +%s)"
 START_ISO="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+usage_snapshot "$RUN_DIR/usage-before-$PART.txt"
 echo "running part $PART" > "$RUN_DIR/status"
 
 set +e
@@ -49,6 +57,7 @@ EXIT_CODE=$?
 set -e
 
 END_EPOCH="$(date +%s)"
+usage_snapshot "$RUN_DIR/usage-after-$PART.txt"
 cat > "$RUN_DIR/meta-$PART.json" <<EOF
 {
   "level": "$LEVEL",

@@ -1,0 +1,97 @@
+{
+  "duration_api_ms": 3737497,
+  "stop_reason": "end_turn",
+  "total_cost_usd": 18.26775899999999,
+  "usage": {
+    "input_tokens": 264,
+    "cache_creation_input_tokens": 559533,
+    "cache_read_input_tokens": 54006391,
+    "output_tokens": 466559,
+    "output_tokens_details": {
+      "thinking_tokens": 155472
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 559533,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1103,
+        "cache_read_input_tokens": 570054,
+        "cache_creation_input_tokens": 687,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 687
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-sonnet-5-5": {
+      "inputTokens": 270,
+      "outputTokens": 508278,
+      "cacheReadInputTokens": 54069685,
+      "cacheCreationInputTokens": 612481,
+      "webSearchRequests": 0,
+      "costUSD": 18.26775899999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 170419,
+      "canonicalModel": "claude-sonnet-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 1,
+    "requested": {
+      "background": 1,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 1,
+    "max_depth": 1,
+    "spawned_by_subagents": 0,
+    "completed": 1,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {
+      "general-purpose": 1
+    }
+  },
+  "is_error": false,
+  "num_turns": 159,
+  "subtype": "success",
+  "api_error_status": null,
+  "ttft_ms": 4854,
+  "type": "result",
+  "duration_ms": 4605484,
+  "ttft_stream_ms": 1548,
+  "time_to_request_ms": 545,
+  "first_content_frame_ms": 1549,
+  "queued_turn_count": 0,
+  "result_index": 0
+}
