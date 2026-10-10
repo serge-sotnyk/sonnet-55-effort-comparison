@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset="utf-8">
+<pre id="out" style="font:12px monospace"></pre>
+<script type="module">
+import { setSpriteScale, makeCanvas, addOutline } from '../../js/art/common.js';
+const S = 2; setSpriteScale(S);
+const res = {};
+const main = document.createElement('canvas'); main.width = 1200; main.height = 800; const mctx = main.getContext('2d');
+const TAU = Math.PI * 2;
+function drawContent(ctx, seed) {
+  for (let i = 0; i < 50; i++) {
+    const x = 20 + ((i * 37 + seed) % 40), y = 10 + ((i * 17) % 55);
+    ctx.fillStyle = i % 3 ? '#c44' : '#48c'; ctx.beginPath(); ctx.arc(x, y, 2 + (i % 4), 0, TAU); ctx.fill();
+  }
+}
+const OFFS8 = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]];
+const OFFS4 = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+let scratch = document.createElement('canvas'); scratch.width = 600; scratch.height = 600; const sctx = scratch.getContext('2d');
+function outlineScratch(surf, offs) {
+  const w = surf.canvas.width, h = surf.canvas.height;
+  sctx.setTransform(1, 0, 0, 1, 0, 0);
+  sctx.globalCompositeOperation = 'copy';
+  sctx.drawImage(surf.canvas, 0, 0);
+  sctx.globalCompositeOperation = 'source-in'; sctx.fillStyle = 'rgba(22,13,6,0.92)'; sctx.fillRect(0, 0, w, h);
+  const ctx = surf.canvas.getContext('2d');
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'destination-over';
+  const d = S;
+  for (const [dx, dy] of offs) ctx.drawImage(scratch, 0, 0, w, h, dx * d, dy * d, w, h);
+  ctx.restore();
+}
+function run(name, fn, N = 500) {
+  for (let i = 0; i < 80; i++) fn(i);
+  const t0 = performance.now();
+  for (let i = 0; i < N; i++) { const c = fn(i); mctx.drawImage(c.canvas, (i % 12) * 90, ((i >> 4) % 6) * 120); if (i % 20 === 19) mctx.getImageData(0, 0, 1, 1); }
+  mctx.getImageData(0, 0, 1, 1);
+  res[name] = +((performance.now() - t0) / N).toFixed(3);
+}
+run('content only', i => { const c = makeCanvas(70, 70); drawContent(c.ctx, i); return c; });
+run('addOutline (common.js)', i => { const c = makeCanvas(70, 70); drawContent(c.ctx, i); addOutline(c); return c; });
+run('scratch reuse, 8 offsets', i => { const c = makeCanvas(70, 70); drawContent(c.ctx, i); outlineScratch(c, OFFS8); return c; });
+run('scratch reuse, 4 offsets', i => { const c = makeCanvas(70, 70); drawContent(c.ctx, i); outlineScratch(c, OFFS4); return c; });
+// halo by filled dilation: draw all circles r+1 in dark first
+run('halo fills (r+1) then content', i => { const c = makeCanvas(70, 70); const ctx = c.ctx; ctx.fillStyle = 'rgba(22,13,6,.92)'; for (let k = 0; k < 50; k++) { const x = 20 + ((k * 37 + i) % 40), y = 10 + ((k * 17) % 55); ctx.beginPath(); ctx.arc(x, y, 3 + (k % 4), 0, TAU); ctx.fill(); } drawContent(ctx, i); return c; });
+// outline via shadow trick: draw sprite onto itself with shadow offsets under destination-over
+run('shadow trick 4x self drawImage', i => { const c = makeCanvas(70, 70); drawContent(c.ctx, i); const ctx = c.canvas.getContext('2d'); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'destination-over'; ctx.shadowColor = 'rgba(22,13,6,.92)'; ctx.shadowBlur = 0; for (const [dx, dy] of OFFS4) { ctx.shadowOffsetX = dx * S * 1000; ctx.shadowOffsetY = dy * S * 1000; ctx.drawImage(c.canvas, -dx * 1000 * S, -dy * 1000 * S); } ctx.restore(); return c; });
+document.getElementById('out').textContent = JSON.stringify(res, null, 1);
+window.__result = res; window.__done = true;
+</script>

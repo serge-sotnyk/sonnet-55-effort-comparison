@@ -1,0 +1,10 @@
+import { chromium } from './node_modules/playwright-core/index.mjs';
+const browser = await chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
+const page = await browser.newPage({ deviceScaleFactor: 2 });
+page.on('pageerror', e => console.log('[pageerror]', e.message));
+page.on('console', m => { if (m.type()==='error') console.log('[err]', m.text()); });
+await page.goto('http://localhost:28101/tools/preview/units_parts.html', { waitUntil: 'load' });
+await page.waitForFunction(() => window.__done === true, null, { timeout: 100000 });
+const r = await page.evaluate(async () => { const U = await import('/js/art/units.js'); const o = {}; for (const id of U.allUnitTypes()) o[id] = U.unitSpriteInfo(id); return o; });
+console.log(JSON.stringify(r));
+await browser.close();

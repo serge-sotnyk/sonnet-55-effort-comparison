@@ -1,0 +1,128 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Buildings integration check</title>
+<body style="margin:0;background:#222;color:#ddd;font:12px monospace">
+<pre id="out">running...</pre>
+<script type="module">
+// Integration checker: calls every exported function of buildings.js with every building id x ages x teams x states, plus garbage input,
+// asserts no exception / empty canvas / non-cached repeat, and reports generation times.  Result: window.__result (+ one-line JSON on console).
+import { setSpriteScale, getSpriteScale } from '../../js/art/common.js';
+const q = new URLSearchParams(location.search);
+const SC = q.get('scale') ? Number(q.get('scale')) : (window.devicePixelRatio >= 1.5 ? 2 : 1);
+setSpriteScale(SC);
+const B = await import('../../js/art/buildings.js');
+const { BUILDINGS } = await import('../../js/data/buildings.js');
+const ids = Object.keys(BUILDINGS);
+const errors = [], timings = {}, warnings = [];
+if (q.get('warm')) {                                           // fresh-page warm-up timing only
+  const t0 = performance.now(); let slices = 0, maxSlice = 0, last = performance.now();
+  const teams = q.get('warm').split(',').map(Number);
+  await B.warmBuildingSprites(teams, () => { const n = performance.now(); maxSlice = Math.max(maxSlice, n - last); last = n; slices++; });
+  const r = { scale: SC, warmTeams: teams, warmMs: +(performance.now() - t0).toFixed(0), slices, maxSliceGapMs: +maxSlice.toFixed(1) };
+  window.__result = Object.assign({ errors: 0 }, r); window.__checkDone = true; console.log('WARM ' + JSON.stringify(r));
+  throw new Error('warm-only');
+}
+const probe = document.createElement('canvas'); probe.width = 24; probe.height = 24; const pc = probe.getContext('2d', { willReadFrequently: true });
+
+function nonEmpty(canvas) {                                    // coarse alpha test on a 24x24 downscale
+  pc.clearRect(0, 0, 24, 24); pc.drawImage(canvas, 0, 0, 24, 24);
+  const d = pc.getImageData(0, 0, 24, 24).data; let n = 0;
+  for (let i = 3; i < d.length; i += 4) if (d[i] > 8) n++;
+  return n;
+}
+let count = 0, bytes = 0;
+function check(label, fn) {
+  const t0 = performance.now();
+  let s;
+  try { s = fn(); } catch (e) { errors.push(`${label}: threw ${e && e.message}`); return null; }
+  const dt = performance.now() - t0;
+  count++;
+  if (!s || !s.canvas) { errors.push(`${label}: no sprite`); return null; }
+  if (!(s.w > 0 && s.h > 0)) errors.push(`${label}: bad size ${s.w}x${s.h}`);
+  if (s.canvas.width !== Math.ceil(s.w * getSpriteScale()) || s.canvas.height !== Math.ceil(s.h * getSpriteScale())) errors.push(`${label}: backing store ${s.canvas.width}x${s.canvas.height} != ${s.w}x${s.h} @${getSpriteScale()}`);
+  if (!(s.ax >= 0 && s.ax <= s.w && s.ay >= 0 && s.ay <= s.h)) errors.push(`${label}: anchor ${s.ax},${s.ay} outside ${s.w}x${s.h}`);
+  if (nonEmpty(s.canvas) < 4) errors.push(`${label}: empty canvas`);
+  bytes += s.canvas.width * s.canvas.height * 4;
+  return { s, dt };
+}
+const stats = { first: [], perType: {} };
+function gen(label, type, team, age, state) {
+  const r = check(label, () => B.getBuildingSprite(type, team, age, state));
+  if (!r) return;
+  stats.first.push(r.dt);
+  (stats.perType[type] = stats.perType[type] || []).push(r.dt);
+  // repeat call must return the identical cached object
+  const again = B.getBuildingSprite(type, team, age, state);
+  if (again !== r.s) errors.push(`${label}: not cached (second call returned a different object)`);
+}
+// ---- 1. every id x ages x teams (1,2 + neutral 0 and 7) complete
+const tEverything = performance.now();
+for (const type of ids) {
+  const n = B.buildingAnimFrames(type);
+  if (!Number.isInteger(n) || n < 1) errors.push(`${type}: buildingAnimFrames=${n}`);
+  for (let age = 0; age < 4; age++) for (const team of [1, 2]) {
+    if (type === 'mill') { for (let f = 0; f < n; f++) gen(`${type} a${age} t${team} f${f}`, type, team, age, { frame: f }); }
+    else if (type === 'palisade' || type === 'stone_wall') { for (let m = 0; m < 16; m++) gen(`${type} a${age} t${team} m${m}`, type, team, age, { mask: m }); }
+    else if (type === 'gate') { for (const axis of ['x', 'y']) for (const open of [false, true]) gen(`${type} a${age} t${team} ${axis}${open}`, type, team, age, { axis, open }); }
+    else if (type === 'farm') { for (const fill of [0, 0.2, 0.5, 0.8, 1]) gen(`${type} a${age} t${team} fill${fill}`, type, team, age, { fill }); }
+    else gen(`${type} a${age} t${team}`, type, team, age, undefined);
+  }
+  for (const team of [0, 3, 7]) gen(`${type} a1 t${team}`, type, team, 1, undefined);
+}
+// ---- 2. construction stages
+for (const type of ids) for (const age of [0, 1, 3]) for (const build of [0, 0.1, 0.3, 0.55, 0.8, 0.999]) {
+  const st = { build };
+  if (type === 'gate') st.axis = 'x'; if (type === 'palisade' || type === 'stone_wall') st.mask = 5;
+  gen(`${type} a${age} build${build}`, type, 1, age, st);
+}
+// ---- 3. garbage input must never throw
+for (const [t, tm, a, st] of [['nope', 1, 0, undefined], [undefined, 1, 0, undefined], [null, 1, 0, null], ['house', undefined, undefined, undefined], ['house', NaN, NaN, {}], ['house', 99, 9, { build: -1 }],
+  ['house', -3, -2, { build: NaN }], ['mill', 1, 1, { frame: -5 }], ['mill', 1, 1, { frame: 1e9 }], ['palisade', 1, 0, { mask: -1 }], ['stone_wall', 1, 1, { mask: 99 }], ['gate', 1, 1, { axis: 'z' }], ['farm', 1, 1, { fill: NaN }], ['farm', 1, 1, { fill: -2 }], ['farm', 1, 1, { fill: 7 }], ['castle', 1, 3, { build: 5 }]]) {
+  try { const s = B.getBuildingSprite(t, tm, a, st); if (!s || !s.canvas || !(s.w > 0)) errors.push(`garbage ${t},${tm},${a}: bad sprite`); } catch (e) { errors.push(`garbage ${t},${tm},${a},${JSON.stringify(st)} threw ${e.message}`); }
+}
+// ---- 4. icons, portraits
+const tIcons = performance.now();
+for (const type of ids) for (const age of [0, 1, 2, 3]) {
+  for (const [fn, sz] of [[B.getBuildingIcon, 48], [B.getBuildingPortrait, 72]]) {
+    try {
+      const c = fn(type, 1, age);
+      if (!c || c.width !== sz * getSpriteScale() || c.height !== sz * getSpriteScale()) errors.push(`icon ${type} a${age} ${sz}: size ${c && c.width}x${c && c.height}`);
+      else if (nonEmpty(c) < 300) errors.push(`icon ${type} a${age} ${sz}: nearly empty`);
+      if (fn(type, 1, age) !== c) warnings.push(`icon ${type} a${age} ${sz}: not cached`);
+    } catch (e) { errors.push(`icon ${type} a${age} threw ${e.message}`); }
+  }
+}
+try { B.getBuildingIcon('nope'); B.getBuildingPortrait(undefined, 3, 9); } catch (e) { errors.push('icon garbage threw ' + e.message); }
+const iconMs = performance.now() - tIcons;
+// ---- 5. rubble + construction helper
+for (let n = 0; n <= 6; n++) for (let v = -1; v < 5; v++) check(`rubble n${n} v${v}`, () => B.getRubbleSprite(n, v));
+for (let n = 1; n <= 5; n++) for (let st = 0; st < 4; st++) for (let v = 0; v < 2; v++) check(`construction n${n} s${st} v${v}`, () => B.getConstructionSprite(n, st, v));
+check('rubble undefined', () => B.getRubbleSprite());
+check('construction garbage', () => B.getConstructionSprite(undefined, 99, undefined));
+const generateMs = performance.now() - tEverything;
+// ---- 6. hot path speed (cached): allocation-free integer keyed lookup
+const s0 = B.getBuildingSprite('house', 1, 1, undefined), s1 = B.getBuildingSprite('palisade', 1, 0, { mask: 5 });
+const stt = { build: 1, mask: 5 };
+let acc = 0; const N = 2e6;
+const t1 = performance.now();
+for (let i = 0; i < N; i++) { acc += B.getBuildingSprite('house', 1, 1, undefined).w; acc += B.getBuildingSprite('palisade', 1, 0, stt).h; }
+const hotNs = (performance.now() - t1) * 1e6 / (2 * N);
+// ---- 7. warm-up timing (fresh module state is not available, so measure only the call itself)
+const tw = performance.now();
+let progress = 0;
+await B.warmBuildingSprites([1, 2], (p) => { progress = p; });
+const warmMs = performance.now() - tw;
+// ---- summary
+const all = stats.first.slice().sort((a, b) => a - b);
+const per = Object.fromEntries(Object.entries(stats.perType).map(([k, v]) => [k, +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(2)]));
+const perMax = Object.fromEntries(Object.entries(stats.perType).map(([k, v]) => [k, +Math.max(...v).toFixed(1)]));
+const result = {
+  scale: SC, sprites: count, errors: errors.length, warnings: warnings.length, errorList: errors.slice(0, 40), warningList: warnings.slice(0, 10),
+  generateTotalMs: +generateMs.toFixed(0), iconsMs: +iconMs.toFixed(0), warmMs: +warmMs.toFixed(0), warmProgress: progress,
+  msPerSprite: { mean: +(all.reduce((a, b) => a + b, 0) / all.length).toFixed(2), median: +all[all.length >> 1].toFixed(2), p95: +all[Math.floor(all.length * 0.95)].toFixed(2), max: +all[all.length - 1].toFixed(1) },
+  meanMsByType: per, maxMsByType: perMax, hotPathNsPerCall: +hotNs.toFixed(1), memoryMB: +(bytes / 1048576).toFixed(0),
+};
+window.__result = result; window.__checkDone = true;
+document.getElementById('out').textContent = JSON.stringify(result, null, 1);
+console.log('CHECK ' + JSON.stringify(result));
+</script>

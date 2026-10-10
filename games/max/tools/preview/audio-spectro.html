@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>audio spectrograms</title>
+<link rel="icon" href="data:,">
+<body style="margin:0;background:#0b0e14;color:#cde;font:12px monospace">
+<div id="info" style="padding:4px 8px"></div>
+<div id="grid" style="display:flex;flex-wrap:wrap;gap:6px;padding:4px"></div>
+<script type="module">
+  // Usage: audio-spectro.html?names=age_up,chop&w=760&h=300&seed=1&fmax=12000
+  //        audio-spectro.html?music=peace&sec=40&w=1400&h=420      (offline render of the generative score)
+  import * as H from '../audio-harness.mjs';
+  const q = new URLSearchParams(location.search);
+  const W = +(q.get('w') || 640), HH = +(q.get('h') || 280), seed = +(q.get('seed') || 1), fmax = +(q.get('fmax') || 12000);
+  const grid = document.getElementById('grid'), info = document.getElementById('info');
+  const add = (buf, title, m) => {
+    const c = document.createElement('canvas'); c.width = W; c.height = HH; grid.appendChild(c);
+    const x = c.getContext('2d'); x.fillStyle = '#000'; x.fillRect(0, 0, W, HH);
+    H.drawSpectrogram(x, H.bufChannels(buf), buf.sampleRate, { x: 0, y: 0, w: W, h: HH }, { title: `${title}  peak ${m.peak.toFixed(1)} dBFS  loudA ${m.loudA.toFixed(1)}  cent ${m.centroid.toFixed(0)} Hz`, fmax, fmin: +(q.get('fmin') || 40) });
+  };
+  try {
+    const names = (q.get('names') || '').split(',').filter(Boolean);
+    for (const name of names) {
+      const { buf } = await H.renderSfx(name, { seed });
+      add(buf, name, H.analyze(H.bufChannels(buf), buf.sampleRate));
+    }
+    if (q.get('music')) {
+      const r = await H.renderMusic({ mood: q.get('music'), seconds: +(q.get('sec') || 40), seed, switchTo: q.get('then') || null, switchAt: +(q.get('at') || 20) });
+      add(r.buf, 'music ' + q.get('music') + (q.get('then') ? ' -> ' + q.get('then') : ''), H.analyze(H.bufChannels(r.buf), r.buf.sampleRate));
+    }
+  } catch (e) { info.textContent = 'ERROR ' + (e.stack || e); console.error(e); }
+  window.__done = true;
+</script>

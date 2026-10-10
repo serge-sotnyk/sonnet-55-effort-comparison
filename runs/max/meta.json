@@ -1,0 +1,11 @@
+{
+  "level": "max",
+  "model": "claude-sonnet-5-5",
+  "effort": "max",
+  "prompt": "original.txt",
+  "cli_version": "2.1.289",
+  "work_dir": "~/sonnet-55-experiment/max",
+  "started_utc": "2026-10-09T19:09:31Z",
+  "wall_seconds": 6059,
+  "exit_code": 1
+}

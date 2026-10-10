@@ -1,0 +1,263 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Resources art preview</title>
+<style>
+  html, body { margin: 0; background: #1d221a; }
+  body.single { overflow: hidden; }
+  canvas { display: block; }
+  #nav { position: fixed; z-index: 5; top: 0; left: 0; right: 0; padding: 4px 8px; background: rgba(10,14,8,0.86); font: 12px ui-monospace, Menlo, monospace; color: #cfd8c4; }
+  #nav a { color: #ffe08a; margin-right: 10px; text-decoration: none; } #nav a:hover { text-decoration: underline; }
+  #nav b { color: #8fd68f; margin-right: 6px; }
+  #pad { height: 26px; }
+</style>
+</head>
+<body>
+<div id="nav"></div><div id="pad"></div>
+<script type="module">
+// Contact sheets for js/art/resources.js.
+//   no query            -> every section stacked on one scrolling page (with a nav bar)
+//   ?sheet=trees|forest|meadow|nodes|decor|icons|stumps   one section filling the window (used by the screenshot tools)
+//   &zoom=N  &ground=lush|dark|sand|dirt|water  &only=0,3,5 (tree variants)  &seed=N  &n=12 (forest size)
+//   &dens=1 &jit=0 &clr=0 (forest density / jitter / clearings)   &kinds=a,b  &fills=1,0.5,0  &vars=3 (nodes sheet)   &kinds=tuft,fern  &rowh=44 (decor sheet)   &nav=1 (force nav bar)
+import { setSpriteScale, rng, hash01, fbm } from '../../js/art/common.js';
+setSpriteScale(window.devicePixelRatio >= 1.5 ? 2 : 1);
+const R = await import('../../js/art/resources.js');
+
+const q = new URLSearchParams(location.search);
+const sheet = q.get('sheet') || 'all';
+const groundKind = q.get('ground') || 'lush';
+const zoomQ = q.get('zoom') ? Number(q.get('zoom')) : null;
+const only = q.get('only') ? q.get('only').split(',').map(Number) : null;
+const seed = Number(q.get('seed') || 1);
+const DPR = window.devicePixelRatio || 1;
+const GROUND = {
+  lush: { h: 96, s: 44, l: 38, v: 5 },
+  dark: { h: 108, s: 34, l: 27, v: 4 },
+  sand: { h: 40, s: 46, l: 62, v: 4 },
+  water: { h: 190, s: 42, l: 50, v: 3 },
+  dirt: { h: 32, s: 30, l: 44, v: 4 },
+}[groundKind] || { h: 96, s: 44, l: 38, v: 5 };
+
+let ctx, W, H;
+function newCanvas(w, h) {
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR);
+  cv.style.width = w + 'px'; cv.style.height = h + 'px';
+  document.body.appendChild(cv);
+  ctx = cv.getContext('2d'); ctx.scale(DPR, DPR);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  W = w; H = h;
+  return cv;
+}
+
+function paintGround(x, y, w, h) {
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.fillStyle = `hsl(${GROUND.h},${GROUND.s}%,${GROUND.l}%)`;
+  ctx.fillRect(x, y, w, h);
+  // iso diamond tiles with slight variation + noise blotches (resembles the in-game terrain)
+  for (let ty = -2; ty < h / 16 + 2; ty++) {
+    for (let tx = -1; tx < w / 32 + 2; tx++) {
+      const cx = x + tx * 32 + (ty & 1 ? 16 : 0), cy = y + ty * 16;
+      const n = fbm((cx + 40) * 0.02, (cy + 40) * 0.03, 7, 3);
+      const l = GROUND.l + (n - 0.5) * GROUND.v * 3.4 + (hash01(tx, ty, 3) - 0.5) * 2.6;
+      ctx.fillStyle = `hsl(${GROUND.h + (n - 0.5) * 14},${GROUND.s}%,${l}%)`;
+      ctx.beginPath(); ctx.moveTo(cx, cy - 16); ctx.lineTo(cx + 32, cy); ctx.lineTo(cx, cy + 16); ctx.lineTo(cx - 32, cy); ctx.closePath(); ctx.fill();
+    }
+  }
+  const r = rng(99);
+  for (let i = 0; i < (w * h) / 90; i++) {
+    const px = x + r() * w, py = y + r() * h;
+    ctx.fillStyle = r() < 0.5 ? `hsla(${GROUND.h - 8},${GROUND.s + 8}%,${GROUND.l + 9}%,0.35)` : `hsla(${GROUND.h + 10},${GROUND.s}%,${GROUND.l - 9}%,0.35)`;
+    ctx.fillRect(px, py, 1.5, 1);
+  }
+  ctx.restore();
+}
+
+function put(sp, x, y, z = 1) { ctx.drawImage(sp.canvas, x - sp.ax * z, y - sp.ay * z, sp.w * z, sp.h * z); }
+function label(txt, x, y, color = '#fff', size = 10) {
+  ctx.font = `${size}px system-ui, sans-serif`; ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.textAlign = 'center';
+  ctx.fillText(txt, x + 0.7, y + 0.7); ctx.fillStyle = color; ctx.fillText(txt, x, y);
+}
+function title(txt) { ctx.font = 'bold 13px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillText(txt, 11, 19); ctx.fillStyle = '#ffe08a'; ctx.fillText(txt, 10, 18); }
+// 30 px villager-sized scale marker (feet at x,y)
+function villager(x, y, z = 1) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(z, z);
+  ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(1, 1, 7, 2.6, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#5a3d22'; ctx.fillRect(-4, -11, 3, 11); ctx.fillRect(1, -11, 3, 11);
+  ctx.fillStyle = '#2f6fe0'; ctx.beginPath(); ctx.moveTo(-6, -11); ctx.lineTo(-5, -22); ctx.lineTo(5, -22); ctx.lineTo(6, -11); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#e3b48a'; ctx.beginPath(); ctx.arc(0, -26, 4, 0, 7); ctx.fill();
+  ctx.fillStyle = '#4a2f18'; ctx.beginPath(); ctx.arc(0, -27.5, 4, Math.PI, 0); ctx.fill();
+  ctx.strokeStyle = 'rgba(20,12,6,0.9)'; ctx.lineWidth = 1; ctx.strokeRect(-6, -22, 12, 11);
+  ctx.restore();
+}
+
+// ------------------------------------------------------------------ sections (each draws into the current canvas)
+function treesLayout(zoom) {
+  const n = R.treeVariantCount();
+  const idx = only || [...Array(n).keys()];
+  const cellW = 118 * zoom, cellH = 118 * zoom;
+  const cols = Math.max(1, Math.floor(W / cellW));
+  return { idx, cellH, cols, stepX: Math.floor(W / cols), rows: Math.ceil(idx.length / cols) };
+}
+function treesHeight(zoom) { const L = treesLayout(zoom); return L.rows * (L.cellH + 14) + 30; }
+function treesSheet(zoom) {
+  const { idx, cellH, cols, stepX } = treesLayout(zoom);
+  idx.forEach((v, k) => {
+    const cx = (k % cols) * stepX + stepX * 0.42, cy = 24 + Math.floor(k / cols) * (cellH + 14) + 104 * zoom;
+    put(R.getResourceSprite('tree', v), cx, cy, zoom);
+    villager(cx + 40 * zoom, cy + 2 * zoom, zoom);
+    label(v + ' ' + R.treeFamily(v), cx, cy + 14 * zoom + 6);
+  });
+}
+
+function forestSheet(zoom) {
+  const N = Number(q.get('n') || 12);
+  const ox = W / 2, oy = 130 * zoom;
+  const items = [];
+  const r = rng(seed * 7919 + 13);
+  const clear = [];
+  for (let i = 0; i < (q.get('clr') !== null ? Number(q.get('clr')) : 3); i++) clear.push([r() * N, r() * N, 1.3 + r() * 1.6]);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    let dens = q.get('dens') ? Number(q.get('dens')) : 0.86;
+    for (const c of clear) { const d = Math.hypot(x - c[0], y - c[1]); if (d < c[2]) dens = 0.0; else if (d < c[2] + 1) dens *= 0.4; }
+    if (hash01(x * 31 + seed, y * 17, 5) < dens) items.push({ x, y, kind: 'tree', v: Math.floor(hash01(x, y, seed) * R.treeVariantCount()) });
+    else if (hash01(x, y, 77 + seed) < 0.22) items.push({ x, y, kind: 'stump', v: Math.floor(hash01(x, y, 3) * R.treeVariantCount()) });
+  }
+  for (const it of items) { const J = q.get('jit') !== null ? Number(q.get('jit')) : 0.3; it.jx = (hash01(it.x, it.y, 11) - 0.5) * J; it.jy = (hash01(it.x, it.y, 12) - 0.5) * J; }
+  items.sort((p, q2) => (p.x + p.jx + p.y + p.jy) - (q2.x + q2.jx + q2.y + q2.jy));
+  const P = (x, y) => [ox + (x - y) * 32 * zoom, oy + (x + y) * 16 * zoom];
+  for (const it of items) {
+    const [sx, sy] = P(it.x + it.jx + 0.5, it.y + it.jy + 0.5);
+    put(R.getResourceSprite(it.kind, it.v, 1), sx, sy, zoom);
+  }
+  const [vx, vy] = P(N / 2 + 0.5, N / 2 + 2.5);
+  villager(vx, vy, zoom);
+}
+function forestHeight(zoom) { const N = Number(q.get('n') || 12); return Math.round((N * 32 + 220) * zoom); }
+
+function nodesLayout() {
+  const kinds = q.get('kinds') ? q.get('kinds').split(',') : ['berries', 'gold_mine', 'stone_mine', 'carcass_deer', 'carcass_boar', 'carcass_sheep'];
+  const fills = q.get('fills') ? q.get('fills').split(',').map(Number) : [1, 0.5, 0];
+  const nv = Number(q.get('vars') || 2);
+  return { kinds, fills, nv };
+}
+function nodesHeight(zoom) { return nodesLayout().kinds.length * (62 * zoom + 4) + 80 * zoom; }
+function nodesSheet(zoom) {
+  const { kinds, fills, nv } = nodesLayout();
+  let y = 70 * zoom;
+  const colW = 86 * zoom;
+  kinds.forEach((kind) => {
+    for (let vv = 0; vv < nv; vv++) {
+      fills.forEach((f, fi) => {
+        const x = 20 + (vv * fills.length + fi) * colW + colW / 2;
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.beginPath();
+        ctx.moveTo(x, y - 16 * zoom); ctx.lineTo(x + 32 * zoom, y); ctx.lineTo(x, y + 16 * zoom); ctx.lineTo(x - 32 * zoom, y); ctx.closePath(); ctx.stroke();
+        put(R.getResourceSprite(kind, vv, f), x, y, zoom);
+        if (vv === 0) label('fill ' + f, x, y + 24 * zoom, '#ddd', 9);
+      });
+    }
+    label(kind, 36, y - 30 * zoom, '#ffe08a', 11);
+    y += 62 * zoom + 4;
+  });
+  villager(W - 40, 80, zoom);
+}
+
+function stumpsHeight(zoom) { return Math.ceil(R.treeVariantCount() / 10) * 50 * zoom + 50; }
+function stumpsSheet(zoom) {
+  for (let v = 0; v < R.treeVariantCount(); v++) {
+    const x = 40 + (v % 10) * 60 * zoom, y = 50 * zoom + Math.floor(v / 10) * 50 * zoom;
+    put(R.getResourceSprite('stump', v, 1), x, y, zoom);
+    label(v + ' ' + R.treeFamily(v), x, y + 14 * zoom, '#ddd', 9);
+  }
+}
+
+function decorKinds() { return q.get('kinds') ? q.get('kinds').split(',') : ['tuft', 'flowers', 'rocks', 'mushrooms', 'fern', 'reeds', 'shrub', 'log', 'pebbles']; }
+function decorHeight(zoom) { return decorKinds().length * Number(q.get('rowh') || 44) * zoom + 40 * zoom; }
+function decorSheet(zoom) {
+  let y = 38 * zoom;
+  const rowH = Number(q.get('rowh') || 44);
+  for (const k of decorKinds()) {
+    const n = R.decorVariantCount(k);
+    label(k + ' x' + n, 40, y - 14 * zoom, '#ffe08a', 11);
+    for (let v = 0; v < n; v++) put(R.getDecorSprite(k, v), 90 + v * 52 * zoom, y, zoom);
+    y += rowH * zoom;
+  }
+  villager(W - 40, 80, zoom);
+}
+
+function iconsHeight(zoom) { return 36 * zoom + 70; }
+function iconsSheet(zoom) {
+  const kinds = ['tree', 'stump', 'berries', 'gold_mine', 'stone_mine', 'carcass_deer', 'carcass_boar', 'carcass_sheep', 'food', 'wood', 'gold', 'stone'];
+  kinds.forEach((k, i) => {
+    const x = 20 + i * 44 * zoom, y = 30;
+    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(x - 2, y - 2, 24 * zoom + 4, 24 * zoom + 4);
+    ctx.drawImage(R.getResourceIcon(k), x, y, 24 * zoom, 24 * zoom);
+    label(k, x + 12 * zoom, y + 36 * zoom, '#ddd', 8);
+  });
+}
+
+// ------------------------------------------------------------------ layout
+function meadowSheet(zoom) {
+  // scatters decor like js/render/terrain.js does (26% of grass tiles), plus a few trees / mines / bushes for context
+  const N = Number(q.get('n') || 22);
+  const ox = W / 2, oy = 40 * zoom;
+  const P = (x, y) => [ox + (x - y) * 32 * zoom, oy + (x + y) * 16 * zoom];
+  const items = [];
+  for (let ty = 0; ty < N; ty++) for (let tx = 0; tx < N; tx++) {
+    const hv = hash01(tx, ty, 77 + seed), hv2 = hash01(tx, ty, 78), hv3 = hash01(tx, ty, 79);
+    if (hv > 0.26) continue;
+    const r = hv3;
+    const k = r < 0.52 ? 'tuft' : r < 0.64 ? 'flowers' : r < 0.72 ? 'rocks' : r < 0.82 ? 'fern' : r < 0.86 ? 'mushrooms' : r < 0.94 ? 'shrub' : 'pebbles';
+    items.push({ x: tx + hv2, y: ty + hash01(tx, ty, 80), sp: R.getDecorSprite(k, Math.floor(hv2 * 16)) });
+  }
+  const ctxs = [['gold_mine', 6, 8, 1], ['stone_mine', 9, 6, 1], ['berries', 11, 10, 1], ['tree', 14, 5, 3], ['tree', 15, 6, 10], ['tree', 7, 15, 20], ['stump', 12, 13, 2], ['carcass_deer', 5, 11, 0], ['carcass_boar', 10, 15, 0], ['carcass_sheep', 16, 12, 0]];
+  for (const c of ctxs) items.push({ x: c[1] + 0.5, y: c[2] + 0.5, sp: R.getResourceSprite(c[0], c[3], 1) });
+  items.sort((a, b) => (a.x + a.y) - (b.x + b.y));
+  for (const it of items) { const [sx, sy] = P(it.x, it.y); put(it.sp, sx, sy, zoom); }
+  villager(...P(9.5, 9.5), zoom);
+}
+function meadowHeight(zoom) { return Math.round((Number(q.get('n') || 22) * 32 + 120) * zoom); }
+
+const SECTIONS = {
+  trees: { zoom: 1.5, h: treesHeight, draw: treesSheet },
+  forest: { zoom: 1, h: forestHeight, draw: forestSheet },
+  meadow: { zoom: 1, h: meadowHeight, draw: meadowSheet },
+  nodes: { zoom: 1.6, h: nodesHeight, draw: nodesSheet },
+  decor: { zoom: 2.4, h: decorHeight, draw: decorSheet },
+  stumps: { zoom: 3, h: stumpsHeight, draw: stumpsSheet },
+  icons: { zoom: 3, h: iconsHeight, draw: iconsSheet },
+};
+const nav = document.getElementById('nav');
+const base = location.pathname;
+const showNav = !q.get('sheet') || q.get('nav') === '1';
+if (showNav) {
+  nav.innerHTML = '<b>resources</b>' + ['', ...Object.keys(SECTIONS)].map((s) => `<a href="${base}${s ? '?sheet=' + s : ''}">${s || 'all'}</a>`).join('') +
+    '<b>ground</b>' + ['lush', 'dark', 'sand', 'dirt', 'water'].map((g) => `<a href="${base}?${new URLSearchParams({ ...Object.fromEntries(q), ground: g })}">${g}</a>`).join('');
+  document.body.classList.add(q.get('sheet') ? 'single' : 'multi');
+} else { nav.style.display = 'none'; document.getElementById('pad').style.display = 'none'; document.body.classList.add('single'); }
+
+if (sheet === 'all') {
+  const w = Math.min(window.innerWidth, 1700);
+  for (const name of ['trees', 'forest', 'meadow', 'nodes', 'decor', 'stumps', 'icons']) {
+    const S = SECTIONS[name];
+    const z = S.zoom * (name === 'trees' ? 0.9 : 1);
+    W = w;                                         // layout width for the height computation
+    newCanvas(w, Math.round(S.h(z)));
+    paintGround(0, 0, W, H);
+    title(name);
+    S.draw(z);
+  }
+} else {
+  const S = SECTIONS[sheet] || SECTIONS.trees;
+  const z = zoomQ || S.zoom;
+  newCanvas(window.innerWidth, window.innerHeight);
+  paintGround(0, 0, W, H);
+  S.draw(z);
+}
+window.__done = true;
+</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>icons/menu checker</title></head>
+<body style="background:#111;color:#ddd;font:12px monospace">
+<pre id="log">running...</pre>
+<script type="module">
+// Integration checker for js/art/icons.js and js/art/menu.js. Results are published in window.__result (read by tools/icons-check.mjs).
+import { setSpriteScale, getSpriteScale } from '../../js/art/common.js';
+const q = new URLSearchParams(location.search);
+const dpr = Number(q.get('dpr') || window.devicePixelRatio || 1);
+setSpriteScale(dpr >= 1.5 ? 2 : 1);
+const v = '?v=' + Date.now();
+const { getIcon, glyphNames } = await import('../../js/art/icons.js' + v);
+const { drawMenuBackdrop, getCivEmblem } = await import('../../js/art/menu.js' + v);
+const { TECHS } = await import('../../js/data/techs.js');
+const { CIVS } = await import('../../js/data/civs.js');
+
+const result = { errors: [], warnings: [], icons: {}, backdrop: [], emblems: [], counts: {} };
+const err = m => result.errors.push(m), warn = m => result.warnings.push(m);
+
+const ACC = ['gold', 'stone', 'blood', 'holy', 'steel', 'wood', 'food'];
+const UI = 'attack move stop delete garrison ungarrison rally repair build_eco build_mil back cancel stance_aggressive stance_defensive stand_ground stance_passive idle_villager idle_military menu buy sell attack_move patrol heal convert unpack wall gate flare speed pause sound mute chat objectives trade research queue town_center select_all minimap_signal'.split(' ');
+const RES = ['food', 'wood', 'gold', 'stone', 'pop'];
+const NEEDED_GLYPHS = 'cloth wheelbarrow cart eye collar plow crop axe saw pickaxe sword shield barding bow archerarmor boots ring horse castle crane tower wall gear cross scroll book coin banner'.split(' ');
+
+// ---- spec list
+const specs = new Set();
+const techSpecs = new Set();
+for (const t of Object.values(TECHS)) { if (!t.icon.startsWith('unit:')) { techSpecs.add(t.icon); specs.add(t.icon); } }
+const names = glyphNames();
+for (const g of NEEDED_GLYPHS) if (!names.includes(g)) err('glyphNames() is missing required glyph: ' + g);
+for (const g of names) { specs.add('glyph:' + g); for (const a of ACC) specs.add('glyph:' + g + ':' + a); }
+for (let i = 0; i < 4; i++) specs.add('age:' + i);
+for (const c of Object.keys(CIVS)) specs.add('civ:' + c);
+for (const r of RES) specs.add('res:' + r);
+for (const u of UI) specs.add('ui:' + u);
+result.counts.specs = specs.size; result.counts.techSpecs = techSpecs.size; result.counts.glyphs = names.length;
+
+// ---- pixel inspection helper (copy into a small 2D canvas so we can read pixels)
+function inspect(cv) {
+  const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height;
+  const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(cv, 0, 0);
+  const d = x.getImageData(0, 0, c.width, c.height).data;
+  let opaque = 0, clear = 0, minL = 255, maxL = 0;
+  for (let i = 0; i < d.length; i += 4) { const a = d[i + 3]; if (a > 250) opaque++; else if (a < 8) clear++; if (a > 40) { const l = (d[i] + d[i + 1] + d[i + 2]) / 3; if (l < minL) minL = l; if (l > maxL) maxL = l; } }
+  const n = d.length / 4;
+  const corner = d[3], center = d[((c.height >> 1) * c.width + (c.width >> 1)) * 4 + 3];
+  return { n, opaque: opaque / n, clear: clear / n, contrast: maxL - minL, corner, center };
+}
+
+const times = [];
+let worst = { ms: 0, spec: '' };
+const sizesFor = s => s.startsWith('res:') ? [24, 48] : [48, 96, 32];
+for (const spec of specs) {
+  for (const size of sizesFor(spec)) {
+    let cv;
+    const t0 = performance.now();
+    try { cv = getIcon(spec, size); } catch (e) { err('getIcon(' + spec + ',' + size + ') threw: ' + (e && e.stack || e)); continue; }
+    const ms = performance.now() - t0;
+    times.push(ms); if (ms > worst.ms) worst = { ms, spec: spec + '@' + size };
+    const SC = getSpriteScale();
+    if (!cv || !cv.width) { err('empty canvas for ' + spec + '@' + size); continue; }
+    if (cv.width !== size * SC || cv.height !== size * SC) err('wrong canvas size for ' + spec + '@' + size + ': ' + cv.width + 'x' + cv.height + ' (scale ' + SC + ')');
+    const info = inspect(cv);
+    if (info.opaque + (1 - info.clear - info.opaque) < 0.05) err('nearly empty icon ' + spec + '@' + size);
+    if (info.contrast < 25) warn('low contrast ' + spec + '@' + size + ' (' + info.contrast.toFixed(0) + ')');
+    const transparentKind = spec.startsWith('res:') || spec.startsWith('ui:');
+    if (!transparentKind) { if (info.center < 250) err('opaque icon has transparent center: ' + spec + '@' + size); if (info.opaque < 0.80) warn('opaque icon coverage only ' + (info.opaque * 100).toFixed(0) + '%: ' + spec + '@' + size); }
+    else { if (info.corner > 10) warn('transparent icon has opaque corner pixel: ' + spec + '@' + size); if (info.clear < 0.15) warn('transparent icon barely transparent: ' + spec + '@' + size); }
+    if (getIcon(spec, size) !== cv) err('getIcon not cached for ' + spec + '@' + size);
+  }
+}
+times.sort((a, b) => a - b);
+result.icons = { calls: times.length, avgMs: times.reduce((a, b) => a + b, 0) / times.length, p50: times[times.length >> 1], p95: times[Math.floor(times.length * 0.95)], max: times[times.length - 1], worst };
+
+// ---- warm-path cost
+{
+  const arr = [...specs].slice(0, 200); const t0 = performance.now(); let n = 0;
+  for (let r = 0; r < 200; r++) for (const sp of arr) { getIcon(sp, sp.startsWith('res:') ? 24 : 48); n++; }
+  result.icons.warmCallUs = (performance.now() - t0) / n * 1000;
+}
+// ---- default sizes + unknown specs must not throw
+try {
+  const d = getIcon('glyph:sword'); if (d.width !== 48 * getSpriteScale()) err('default size is not 48 for glyph:sword');
+  const r = getIcon('res:gold'); if (r.width !== 24 * getSpriteScale()) err('default size is not 24 for res:gold');
+  getIcon('glyph:does_not_exist'); getIcon('nonsense:foo'); getIcon('civ:atlantis'); getIcon('age:9'); getIcon('ui:nope'); getIcon('res:nope');
+} catch (e) { err('unknown spec threw: ' + e); }
+
+// ---- emblems
+for (const civ of Object.keys(CIVS)) for (const size of [128, 192, 256]) {
+  const t0 = performance.now(); let cv;
+  try { cv = getCivEmblem(civ, size); } catch (e) { err('getCivEmblem(' + civ + ',' + size + ') threw: ' + e.stack); continue; }
+  const ms = performance.now() - t0;
+  const info = inspect(cv);
+  if (info.opaque < 0.2) err('emblem mostly empty ' + civ + '@' + size);
+  if (info.corner > 10) warn('emblem corner not transparent ' + civ + '@' + size);
+  result.emblems.push({ civ, size, ms: +ms.toFixed(1), coverage: +info.opaque.toFixed(2) });
+}
+
+// ---- backdrop timing
+const sizes = [[1280, 720], [1920, 1080], [2560, 1440]];
+const dprs = (q.get('dprs') || '1,2').split(',').map(Number);
+for (const [w, h] of sizes) for (const d of dprs) {
+  const cv = document.createElement('canvas'); cv.width = Math.round(w * d); cv.height = Math.round(h * d); cv.style.width = w + 'px'; cv.style.height = h + 'px';
+  document.body.appendChild(cv);
+  const ctx = cv.getContext('2d'); ctx.scale(d, d);
+  let t0 = performance.now();
+  try { drawMenuBackdrop(ctx, w, h, 0); } catch (e) { err('drawMenuBackdrop threw at ' + w + 'x' + h + '@' + d + ': ' + e.stack); document.body.removeChild(cv); continue; }
+  const buildMs = performance.now() - t0;
+  ctx.getImageData(0, 0, 1, 1);
+  // (1) GPU-style measurement: no readbacks inside the loop; JS time = command issue, amortized = whole batch incl. raster (one readback at the end)
+  const N = 120, js = [];
+  const tb = performance.now();
+  for (let i = 0; i < N; i++) { const t = 1 + i / 60; const a = performance.now(); drawMenuBackdrop(ctx, w, h, t); js.push(performance.now() - a); }
+  const tj = performance.now() - tb;
+  ctx.getImageData(0, 0, 1, 1);
+  const amortized = (performance.now() - tb) / N;
+  // (2) worst case: a readback after every frame (forces CPU raster in Chrome) -> real per-frame cost of software rendering
+  const full = [];
+  for (let i = 0; i < 40; i++) { const a = performance.now(); drawMenuBackdrop(ctx, w, h, 3 + i / 60); ctx.getImageData(0, 0, 1, 1); full.push(performance.now() - a); }
+  js.sort((a, b) => a - b); full.sort((a, b) => a - b);
+  const avg = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+  const px = ctx.getImageData(Math.round(cv.width * 0.3), Math.round(cv.height * 0.4), 1, 1).data;
+  result.backdrop.push({ size: w + 'x' + h, dpr: d, buildMs: +buildMs.toFixed(0), jsAvg: +avg(js).toFixed(2), jsP95: +js[Math.floor(N * 0.95)].toFixed(2), jsMax: +js[N - 1].toFixed(2), amortized: +amortized.toFixed(2), softwareAvg: +avg(full).toFixed(2), softwareP95: +full[Math.floor(full.length * 0.95)].toFixed(2), px: Array.from(px).join(',') });
+  // resize rebuild check
+  t0 = performance.now(); drawMenuBackdrop(ctx, w, h - 7, 2); result.backdrop[result.backdrop.length - 1].rebuildMs = +(performance.now() - t0).toFixed(0);
+  document.body.removeChild(cv);
+}
+document.getElementById('log').textContent = JSON.stringify(result, null, 1);
+window.__result = result; window.__done = true;
+</script>
+</body></html>

@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>audio test harness</title>
+<link rel="icon" href="data:,">
+<body style="background:#111;color:#ccc;font:12px monospace">
+<pre id="log">audio test harness (driven by tools/audio-check.mjs)</pre>
+<script type="module">
+  import * as H from '../audio-harness.mjs';
+  window.H = H;
+  window.__ready = true;
+</script>

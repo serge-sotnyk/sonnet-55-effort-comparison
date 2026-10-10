@@ -1,0 +1,68 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Buildings: texture / kit swatches</title>
+<body style="margin:0;background:#5f8a3c">
+<canvas id="cv" width="1800" height="1100" style="width:1800px;height:1100px"></canvas>
+<script type="module">
+import { setSpriteScale, makeCanvas, shade } from '../../js/art/common.js';
+setSpriteScale(window.devicePixelRatio >= 1.5 ? 2 : 1);
+const P = await import('../../js/art/buildings_paint.js');
+const K = await import('../../js/art/buildings_kit.js');
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const dpr = window.devicePixelRatio >= 1.5 ? 2 : 1;
+cv.width = 1800 * dpr; cv.height = 1100 * dpr; ctx.scale(dpr, dpr);
+ctx.fillStyle = '#6f9a45'; ctx.fillRect(0, 0, 1800, 1100);
+
+const wallPainters = [
+  ['stone', P.stoneP({ base: '#a59e8d' })], ['stone+moss', P.stoneP({ base: '#9a9484', moss: 0.8, cracks: 3 })], ['ashlar', P.ashlarP({ band: [30] })], ['brick', P.brickP()],
+  ['plaster+timber', P.halfTimberP({ footing: 8, brace: 'v', pw: 22 })], ['wattle', P.wattleP()], ['planks', P.planksP()], ['planksH', P.planksHP()], ['logs', P.logsP()], ['flag', P.flagstoneP()],
+];
+const roofPainters = [
+  ['thatch', P.thatchP()], ['tiles', P.tilesP()], ['pan', P.panTilesP()], ['slate', P.slateP()], ['shingles', P.shinglesP()], ['copper', P.copperP()], ['plankroof', P.plankRoofP()], ['cloth', P.clothP({ stripe: '#c33' })],
+];
+let t0 = performance.now();
+const out = [];
+function drawScene(i, painter, kind, ox, oy) {
+  const g = new K.Scene(1, { seed: 7 + i, hmax: 60, side: 40 });
+  if (kind === 'wall') {
+    g.cast(-20, -16, 20, 16, 40);
+    g.box(-20, -16, 0, 20, 16, 36, { left: (c, w, h, r) => { painter(c, w, h, r); P.doorD(c, w * 0.5 - 6, h - 24, 12, 22, { arch: false }); P.windowD(c, 5, 6, 8, 10, { style: 'shutter' }); }, right: painter, top: P.flagstoneP(), eave: 4 });
+  } else {
+    g.cast(-26, -18, 26, 18, 40);
+    g.box(-20, -16, 0, 20, 16, 24, { left: P.plasterP(), right: P.plasterP(), top: P.flagstoneP(), eave: 4 });
+    g.roofGable({ x0: -20, y0: -16, x1: 20, y1: 16, z: 24, rise: 18, ov: 5, ovg: 4, axis: i % 2 ? 'x' : 'y', paint: painter, ridge: '#6a2a18' });
+  }
+  const r = g.finish();
+  const t = performance.now();
+  ctx.drawImage(r.surf.canvas, ox - r.ax, oy - r.ay, r.surf.w, r.surf.h);
+  return r;
+}
+let x = 80, y = 120;
+wallPainters.forEach(([n, p], i) => { const r = drawScene(i, p, 'wall', 80 + (i % 5) * 150, 120 + Math.floor(i / 5) * 160); ctx.fillStyle = '#fff'; ctx.font = '11px sans-serif'; ctx.fillText(n, 50 + (i % 5) * 150, 190 + Math.floor(i / 5) * 160); });
+roofPainters.forEach(([n, p], i) => { const r = drawScene(i, p, 'roof', 880 + (i % 4) * 190, 130 + Math.floor(i / 4) * 170); ctx.fillStyle = '#fff'; ctx.font = '11px sans-serif'; ctx.fillText(n, 840 + (i % 4) * 190, 200 + Math.floor(i / 4) * 170); });
+// zoomed copy of a few
+ctx.save(); ctx.scale(3, 3); ctx.restore();
+console.log('time', (performance.now() - t0).toFixed(1));
+// big zoomed: draw one scene scaled
+{
+  const g = new K.Scene(1, { seed: 3, hmax: 60, side: 40 });
+  g.cast(-20, -16, 20, 16, 40);
+  g.box(-20, -16, 0, 20, 16, 30, { left: P.halfTimberP({ footing: 8, brace: 'v', pw: 22 }), right: P.halfTimberP({ footing: 8, brace: 'x', pw: 22 }), top: P.flagstoneP(), eave: 4 });
+  g.roofGable({ x0: -20, y0: -16, x1: 20, y1: 16, z: 30, rise: 20, ov: 5, ovg: 4, axis: 'x', paint: P.tilesP(), ridge: '#7a3018' });
+  const r = g.finish();
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(r.surf.canvas, 300 - r.ax * 3, 800 - r.ay * 3, r.surf.w * 3, r.surf.h * 3);
+}
+{
+  const g = new K.Scene(1, { seed: 5, hmax: 100, side: 40 });
+  g.cast(-14, -14, 14, 14, 60);
+  const pal = P.tones('#a59e8d', 6, 0.14);
+  g.lathe(0, 0, 0, 56, z => 15 - z * 0.04, { pal, ch: 8, bw: 11, hi: 0.2 });
+  g.roundBattlement(0, 0, 13, 56, {});
+  g.latheDecal(0, 0, 14, 2.2, 30, 5, 12, (c, x, y) => P.windowD(c, 0, 0, 5, 12, { style: 'arch' }));
+  g.latheDecal(0, 0, 14.5, 1.57, 36, 10, 20, (c, x, y) => P.doorD(c, 0, 0, 10, 20, {}));
+  g.cone(0, 0, 17, 56, 90, { pal: P.tones('#b4452d', 6, 0.15), ch: 5, bw: 8 });
+  const r = g.finish();
+  ctx.drawImage(r.surf.canvas, 700 - r.ax * 3, 900 - r.ay * 3, r.surf.w * 3, r.surf.h * 3);
+}
+</script>

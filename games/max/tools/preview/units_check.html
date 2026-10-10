@@ -1,0 +1,125 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>units integration check</title>
+<pre id="out" style="font:12px monospace;color:#222;white-space:pre-wrap"></pre>
+<script type="module">
+import { setSpriteScale, getSpriteScale } from '../../js/art/common.js';
+const q = new URLSearchParams(location.search);
+const scale = +(q.get('scale') || (window.devicePixelRatio >= 1.5 ? 2 : 1));
+setSpriteScale(scale);
+const U = await import('../../js/art/units.js');
+const { UNITS } = await import('../../js/data/units.js');
+const mode = q.get('mode') || 'full';        // warm | full | quick
+const out = document.getElementById('out');
+const res = { scale, errors: [], mode };
+const ids = Object.keys(UNITS);
+res.unitCount = ids.length;
+const log = s => { out.textContent += s + '\n'; };
+
+function checkSprite(s, ctxStr, deepCheck) {
+  if (!s || !s.canvas) { res.errors.push('no canvas ' + ctxStr); return; }
+  if (!Number.isFinite(s.ax) || !Number.isFinite(s.ay) || !Number.isInteger(s.w) || !Number.isInteger(s.h)) { res.errors.push('bad metrics ' + ctxStr + JSON.stringify([s.w, s.h, s.ax, s.ay])); return; }
+  if (s.canvas.width !== s.w * scale || s.canvas.height !== s.h * scale) res.errors.push('canvas size mismatch ' + ctxStr);
+  if (s.ax < 0 || s.ax > s.w || s.ay < 0 || s.ay > s.h) res.errors.push('anchor outside ' + ctxStr + JSON.stringify([s.w, s.h, s.ax, s.ay]));
+  if (deepCheck) {
+    const c = s.canvas.getContext('2d');
+    const d = c.getImageData(0, 0, s.canvas.width, s.canvas.height).data;
+    let n = 0;
+    for (let i = 3; i < d.length; i += 4) if (d[i] > 16) n++;
+    if (n < 30) res.errors.push('empty canvas ' + ctxStr);
+    // clipped at the border? (content touching the edge means cropping bug)
+    let edge = 0;
+    const W = s.canvas.width, H = s.canvas.height;
+    for (let x = 0; x < W; x++) { if (d[(x) * 4 + 3] > 60) edge++; if (d[((H - 1) * W + x) * 4 + 3] > 60) edge++; }
+    for (let y = 0; y < H; y++) { if (d[(y * W) * 4 + 3] > 60) edge++; if (d[(y * W + W - 1) * 4 + 3] > 60) edge++; }
+    if (edge > 0) res.errors.push('content touches the sprite border ' + ctxStr);
+  }
+}
+
+const ANIMS = U.ANIMS;
+const perKind = {};
+let frames = 0, tGen = 0, worst = { ms: 0 };
+
+if (mode === 'warm') {
+  // standard set: all units, teams 1-2, dirs 0-7, idle+walk+attack+death (+corpse)
+  const t0 = performance.now();
+  let prog = 0;
+  await U.warmUnitSprites(ids, [1, 2], p => { prog = p; }, { anims: ['idle', 'walk', 'attack', 'death', 'corpse'], budget: 1e9 });
+  res.warmMsBlocking = performance.now() - t0;
+  let n = 0; for (const id of ids) for (const team of [1, 2]) for (let d = 0; d < 8; d++) for (const a of ['idle', 'walk', 'attack', 'death', 'corpse']) n += U.animFrames(id, a);
+  res.warmFrames = n; res.warmProgressEnd = prog;
+  // first-draw cost after warm: draw all warmed sprites into a main canvas and flush
+  { const main = document.createElement('canvas'); main.width = 1200; main.height = 800; const mc = main.getContext('2d');
+    const t = performance.now(); let k = 0;
+    for (const id of ids) for (const team of [1, 2]) for (let d = 0; d < 8; d++) for (const a of ['idle', 'walk', 'attack', 'death']) for (let f = 0; f < U.animFrames(id, a); f++) { const s = U.getUnitSprite(id, team, d, a, f); mc.drawImage(s.canvas, (k % 20) * 60, ((k >> 5) % 6) * 120); k++; }
+    mc.getImageData(0, 0, 1, 1);
+    res.firstDrawAfterWarmMs = performance.now() - t; res.firstDrawSprites = k; }
+  // how much canvas memory?
+  let bytes = 0;
+  for (const id of ids) for (const team of [1, 2]) for (let d = 0; d < 8; d++) for (const a of ['idle', 'walk', 'attack', 'death', 'corpse']) for (let f = 0; f < U.animFrames(id, a); f++) { const s = U.getUnitSprite(id, team, d, a, f); bytes += s.canvas.width * s.canvas.height * 4; }
+  res.warmMB = bytes / 1048576;
+  // sliced warm (time-sliced, what the loading screen would do): fresh villager set via different team (teams 3,4) for 6 types
+  const t1 = performance.now(); let slices = 0, maxSlice = 0, last = performance.now();
+  await new Promise(r => { const t = ['villager', 'knight', 'archer', 'ram']; U.warmUnitSprites(t, [3], p => { slices++; const now = performance.now(); maxSlice = Math.max(maxSlice, now - last); last = now; }, { budget: 8 }).then(r); });
+  res.slicedWarmMs = performance.now() - t1; res.slicedCalls = slices; res.maxSliceMs = maxSlice;
+  // hot path
+  const t2 = performance.now(); let acc = 0; const N = 2000000;
+  const opts = { variant: 0, carry: null };
+  for (let i = 0; i < N; i++) { const s = U.getUnitSprite('knight', 1, i & 7, 'walk', i >> 3, opts); acc += s.w; }
+  res.hotPathNsPerCall = (performance.now() - t2) / N * 1e6; res.acc = acc;
+} else {
+  const teams = mode === 'quick' ? [1, 2] : [0, 1, 2, 3, 4, 5, 6, 7];
+  const rnd = (() => { let a = 12345; return () => { a = (a * 1664525 + 1013904223) >>> 0; return a / 4294967296; }; })();
+  const carries = [null, 'food', 'wood', 'gold', 'stone'];
+  const t0 = performance.now();
+  for (const id of ids) {
+    const kind = U.unitKind(id);
+    const k = perKind[kind] || (perKind[kind] = { frames: 0, ms: 0 });
+    for (const team of teams) for (let dir = 0; dir < 8; dir++) for (const anim of ANIMS) {
+      const n = U.animFrames(id, anim);
+      if (!(n >= 1) || !Number.isInteger(n)) { res.errors.push('bad animFrames ' + id + ' ' + anim + ' ' + n); continue; }
+      for (let f = 0; f < n; f++) {
+        const opts = { variant: (rnd() * 16) | 0, carry: carries[(rnd() * 5) | 0] };
+        const t = performance.now();
+        let s;
+        try { s = U.getUnitSprite(id, team, dir, anim, f + (rnd() < 0.2 ? n * 3 : 0), opts); } catch (e) { res.errors.push('throw ' + id + ' ' + anim + ' ' + e.message); continue; }
+        const dt = performance.now() - t;
+        frames++; tGen += dt; k.frames++; k.ms += dt;
+        if (dt > worst.ms) worst = { ms: dt, id, team, dir, anim, f };
+        checkSprite(s, id + ' t' + team + ' d' + dir + ' ' + anim + ' f' + f, true);
+      }
+    }
+  }
+  res.totalMs = performance.now() - t0; res.frames = frames; res.genMs = tGen; res.msPerFrame = tGen / frames; res.worst = worst;
+  res.perKind = Object.fromEntries(Object.entries(perKind).map(([k, v]) => [k, { frames: v.frames, msPerFrame: +(v.ms / v.frames).toFixed(3) }]));
+  // robustness
+  const weird = [
+    ['nonexistent_unit', 1, 3, 'walk', 5], ['villager', 99, -3, 'idle', -7], ['knight', -1, 12, 'attack', 1e9], ['ram', 3, 2, 'nope', 2], ['deer', 0, 0, 'chop', 3], ['militia', 1, 1, 'build', 2], [undefined, 1, 1, 'idle', 0], [null, 0, 0, 'idle', 0],
+  ];
+  for (const w of weird) { try { const s = U.getUnitSprite(w[0], w[1], w[2], w[3], w[4]); checkSprite(s, 'weird ' + JSON.stringify(w), true); } catch (e) { res.errors.push('weird threw ' + JSON.stringify(w) + ' ' + e.message); } }
+  try { const s = U.getUnitSprite('villager', 1, 0, 'walk', 0, null); checkSprite(s, 'null opts', false); } catch (e) { res.errors.push('null opts threw'); }
+  // icons / portraits
+  const ti = performance.now();
+  for (const id of ids) for (const team of [0, 1, 2, 5, 7]) {
+    try {
+      const a = U.getUnitIcon(id, team), b = U.getUnitPortrait(id, team);
+      if (a.width !== 48 * scale || a.height !== 48 * scale) res.errors.push('icon size ' + id + ' ' + a.width + 'x' + a.height);
+      if (b.width !== 72 * scale || b.height !== 72 * scale) res.errors.push('portrait size ' + id);
+      for (const c of [a, b]) {
+        const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let tr = 0;
+        for (let i = 3; i < d.length; i += 4) if (d[i] < 250) tr++;
+        if (tr > 0) res.errors.push('icon not opaque ' + id + ' ' + tr + 'px');
+      }
+    } catch (e) { res.errors.push('icon threw ' + id + ' ' + e.message); }
+  }
+  res.iconMs = performance.now() - ti;
+  try { const u = U.unitSpriteInfo('knight'); if (!(u.height > 0)) res.errors.push('unitSpriteInfo'); U.unitSpriteInfo('zzz'); } catch (e) { res.errors.push('unitSpriteInfo threw'); }
+  // exports
+  for (const name of ['ANIMS', 'animFrames', 'getUnitSprite', 'getUnitIcon', 'getUnitPortrait', 'warmUnitSprites', 'unitSpriteInfo']) if (!(name in U)) res.errors.push('missing export ' + name);
+}
+res.errorCount = res.errors.length;
+res.errors = res.errors.slice(0, 40);
+log(JSON.stringify(res, null, 1));
+window.__result = res;
+window.__done = true;
+</script>

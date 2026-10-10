@@ -1,0 +1,219 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Buildings preview</title>
+<body style="margin:0;background:#5f8a3c">
+<canvas id="cv"></canvas>
+<script type="module">
+// Contact sheets for the buildings art.  URL params:
+//   sheet = types | construction | teams | walls | farm | mill | rubble | icons | village | one
+//   from / count : which building types (types sheet);  type : building id (one / construction / teams)
+//   z : zoom factor (default 1);  w,h : canvas css size;  age : single age for 'one' (default all)
+import { setSpriteScale } from '../../js/art/common.js';
+setSpriteScale(window.devicePixelRatio >= 1.5 ? 2 : 1);
+const B = await import('../../js/art/buildings.js');
+const { BUILDINGS } = await import('../../js/data/buildings.js');
+const q = new URLSearchParams(location.search);
+const sheet = q.get('sheet') || 'types';
+const Z = Number(q.get('z') || 1);
+const CW = Number(q.get('w') || 1800), CH = Number(q.get('h') || 1100);
+const cv = document.getElementById('cv');
+const dpr = window.devicePixelRatio >= 1.5 ? 2 : 1;
+cv.style.width = CW + 'px'; cv.style.height = CH + 'px'; cv.width = CW * dpr; cv.height = CH * dpr;
+const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+ctx.imageSmoothingEnabled = true;
+const ids = Object.keys(BUILDINGS);
+const GROUND = q.get('ground') || '#6f9a45';
+ctx.fillStyle = GROUND; ctx.fillRect(0, 0, CW, CH);
+// subtle ground texture so shadows read like in the game
+{ let s = 1; const rn = () => (s = (s * 16807) % 2147483647) / 2147483647; for (let i = 0; i < 6000; i++) { ctx.fillStyle = rn() < 0.5 ? 'rgba(40,80,20,0.12)' : 'rgba(180,220,110,0.1)'; ctx.fillRect(rn() * CW, rn() * CH, 3, 2); } }
+
+function diamond(x, y, n, col = 'rgba(255,255,255,0.55)') {
+  ctx.strokeStyle = col; ctx.lineWidth = 1 / Z;
+  ctx.beginPath(); ctx.moveTo(x, y - 16 * n); ctx.lineTo(x + 32 * n, y); ctx.lineTo(x, y + 16 * n); ctx.lineTo(x - 32 * n, y); ctx.closePath(); ctx.stroke();
+}
+function villager(x, y) {                       // 30 px tall reference marker
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(x, y, 7, 3.5, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#e8d8c0'; ctx.fillRect(x - 4, y - 30, 8, 30); ctx.fillStyle = '#c33'; ctx.fillRect(x - 4, y - 22, 8, 12);
+  ctx.fillStyle = '#e8b890'; ctx.beginPath(); ctx.arc(x, y - 26, 4, 0, 7); ctx.fill();
+}
+function label(t, x, y) { ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(x - 2, y - 11, ctx.measureText(t).width + 6, 14); ctx.fillStyle = '#fff'; ctx.font = '11px sans-serif'; ctx.fillText(t, x + 1, y); }
+function put(type, team, age, state, x, y, opts = {}) {
+  const t0 = performance.now();
+  const s = B.getBuildingSprite(type, team, age, state);
+  const dt = performance.now() - t0;
+  const n = BUILDINGS[type].size;
+  ctx.drawImage(s.canvas, x - s.ax * Z, y - s.ay * Z, s.w * Z, s.h * Z);
+  if (opts.diamond !== false) diamond(x, y, n * Z);
+  if (opts.marker) villager(x + 36 * n * Z, y + 12 * Z);
+  return { s, dt };
+}
+ctx.save();
+const times = [];
+if (sheet === 'types') {
+  const from = Number(q.get('from') || 0), count = Number(q.get('count') || 5);
+  const list = (q.get('types') ? q.get('types').split(',') : ids.slice(from, from + count));
+  let y = 0;
+  const team = Number(q.get('team') || 1);
+  for (const type of list) {
+    const n = BUILDINGS[type].size;
+    const cellW = (64 * n + 110) * Z, hmax = (n === 1 ? 140 : n === 2 ? 120 : n === 3 ? 170 : n === 4 ? 260 : 360) * Z;
+    const rowH = hmax + 16 * n * Z + 24;
+    ctx.font = '12px sans-serif';
+    for (let age = 0; age < 4; age++) {
+      const cx = 20 + cellW * (age + 0.5), cy = y + hmax + 4;
+      let state;
+      if (type === 'farm') state = { fill: 1 }; else if (type === 'gate') state = { axis: 'x', open: age % 2 === 1 }; else if (type === 'palisade' || type === 'stone_wall') state = { mask: [0, 5, 10, 15][age] }; else state = undefined;
+      const r = put(type, team, age, state, cx, cy, { marker: true });
+      times.push(r.dt);
+      label(`${type} age${age}  ${r.s.w}x${r.s.h}  ${r.dt.toFixed(1)}ms`, cx - cellW / 2 + 8, y + 14);
+    }
+    y += rowH;
+    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(0, y - 4, CW, 1);
+  }
+} else if (sheet === 'one') {
+  const type = q.get('type') || 'house', n = BUILDINGS[type].size;
+  const ages = q.get('age') !== null ? [Number(q.get('age'))] : [0, 1, 2, 3];
+  const team = Number(q.get('team') || 1);
+  const cellW = CW / ages.length;
+  ages.forEach((age, i) => {
+    const state = q.get('state') ? JSON.parse(q.get('state')) : (type === 'farm' ? { fill: 1 } : undefined);
+    const r = put(type, team, age, state, cellW * (i + 0.5), CH - 40 * Z - 16 * n * Z, { marker: true });
+    label(`${type} age${age} ${r.s.w}x${r.s.h} ${r.dt.toFixed(1)}ms ax=${r.s.ax} ay=${r.s.ay}`, cellW * i + 8, 14);
+  });
+} else if (sheet === 'construction') {
+  const list = (q.get('types') || q.get('type') || 'house,barracks,town_center').split(',');
+  let y = 0;
+  for (const type of list) {
+    const n = BUILDINGS[type].size;
+    const cellW = (64 * n + 110) * Z, hmax = (n === 1 ? 140 : n === 2 ? 120 : n === 3 ? 170 : n === 4 ? 260 : 360) * Z;
+    const age = Number(q.get('age') || 1);
+    for (let st = 0; st < 5; st++) {
+      const cx = 20 + cellW * (st + 0.5), cy = y + hmax + 4;
+      const r = put(type, 1, age, st < 4 ? { build: (st + 0.5) / 4 } : undefined, cx, cy, { marker: true });
+      label(`${type} stage ${st < 4 ? st : 'done'} ${r.dt.toFixed(1)}ms`, cx - cellW / 2 + 8, y + 14);
+    }
+    y += hmax + 16 * n * Z + 24;
+  }
+} else if (sheet === 'teams') {
+  const list = (q.get('types') || q.get('type') || 'house,barracks,market').split(',');
+  let y = 0;
+  for (const type of list) {
+    const n = BUILDINGS[type].size;
+    const cellW = (64 * n + 90) * Z, hmax = (n === 1 ? 140 : n === 2 ? 120 : n === 3 ? 170 : n === 4 ? 260 : 360) * Z;
+    for (let t = 0; t < 8; t++) {
+      const cx = 20 + cellW * (t + 0.5), cy = y + hmax + 4;
+      const r = put(type, t, Number(q.get('age') || 1), undefined, cx, cy, {});
+      label(`${type} team ${t}`, cx - cellW / 2 + 8, y + 14);
+    }
+    y += hmax + 16 * n * Z + 24;
+  }
+} else if (sheet === 'walls') {
+  // 16 masks for palisade and stone walls, gates open / closed, both axes
+  let y = 0;
+  for (const [type, ages] of [['palisade', [0]], ['stone_wall', [1, 2, 3]]]) {
+    for (const age of ages) {
+      for (let m = 0; m < 16; m++) {
+        const cx = 60 + (m % 8) * 100 * Z, cy = y + 80 * Z + Math.floor(m / 8) * 90 * Z;
+        put(type, 1, age, { mask: m }, cx, cy, {});
+        label(`${type} a${age} m${m}`, cx - 40, cy + 34 * Z);
+      }
+      y += 200 * Z;
+    }
+  }
+  for (const age of [0, 1, 2, 3]) {
+    for (const [ax, op, i] of [['x', false, 0], ['x', true, 1], ['y', false, 2], ['y', true, 3]]) {
+      const cx = 60 + (age * 4 + i) * 100 * Z, cy = 80 * Z + y;
+      if (cx > CW) { }
+      put('gate', 1, age, { axis: ax, open: op }, cx, cy, {});
+      label(`gate a${age} ${ax} ${op ? 'open' : 'shut'}`, cx - 40, cy + 34 * Z);
+    }
+  }
+} else if (sheet === 'farm') {
+  const team = 1;
+  for (let age = 0; age < 4; age++) for (let f = 0; f <= 3; f++) {
+    const cx = 130 + f * 260, cy = 90 + age * 150;
+    put('farm', team, age, { fill: f / 3 }, cx, cy, {});
+    label(`farm age${age} fill ${(f / 3).toFixed(2)}`, cx - 60, cy + 56);
+  }
+} else if (sheet === 'mill') {
+  for (let age = 0; age < 4; age++) for (let f = 0; f < 8; f++) {
+    const cx = 100 + f * 200 * Z, cy = 150 * Z + age * 230 * Z;
+    put('mill', 1, age, { frame: f }, cx, cy, {});
+    label(`mill a${age} f${f}`, cx - 30, cy + 40);
+  }
+} else if (sheet === 'rubble') {
+  let x = 60;
+  for (let n = 1; n <= 5; n++) for (let v = 0; v < 4; v++) {
+    const s = B.getRubbleSprite(n, v);
+    const cx = 100 + (n - 1) * 250 + (v % 2) * 0, cy = 90 + v * 180;
+    ctx.drawImage(s.canvas, cx - s.ax * Z, cy - s.ay * Z, s.w * Z, s.h * Z); diamond(cx, cy, n * Z);
+    label(`rubble n${n} v${v}`, cx - 40, cy + 20 * n * Z + 10);
+  }
+} else if (sheet === 'site') {
+  for (let n = 1; n <= 5; n++) for (let st = 0; st < 4; st++) {
+    const sp = B.getConstructionSprite(n, st, 0);
+    const cx = 120 + st * 330, cy = 60 + (n - 1) * 150 + 40 * n;
+    ctx.drawImage(sp.canvas, cx - sp.ax * Z, cy - sp.ay * Z, sp.w * Z, sp.h * Z); diamond(cx, cy, n * Z);
+    label(`site n${n} stage${st}`, cx - 60, cy + 18 * n * Z + 14);
+  }
+} else if (sheet === 'icons') {
+  const list = ids; let x = 10, y = 10;
+  for (const age of [0, 1, 2, 3]) {
+    x = 10;
+    for (const t of list) {
+      const c1 = B.getBuildingIcon(t, 1, age), c2 = B.getBuildingPortrait(t, 1, age);
+      ctx.drawImage(c1, x, y, 48, 48); ctx.drawImage(c2, x, y + 52, 72, 72);
+      x += 78;
+      if (x > CW - 80) { x = 10; y += 130; }
+    }
+    y += 140;
+  }
+} else if (sheet === 'village') {
+  // iso village: place buildings on a tile grid
+  const OX = Number(q.get('ox') || CW / 2), OY = Number(q.get('oy') || 120);
+  const iso = (x, y) => [OX + (x - y) * 32 * Z, OY + (x + y) * 16 * Z];
+  // ground checker
+  for (let gx = 0; gx < 22; gx++) for (let gy = 0; gy < 22; gy++) {
+    const [sx, sy] = iso(gx, gy);
+    ctx.fillStyle = (gx + gy) % 2 ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.025)';
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + 32 * Z, sy + 16 * Z); ctx.lineTo(sx, sy + 32 * Z); ctx.lineTo(sx - 32 * Z, sy + 16 * Z); ctx.closePath(); ctx.fill();
+  }
+  const wallRun = (type, x0, y, n, team, extra = {}) => { const out = []; for (let i = 0; i < n; i++) out.push([type, team, x0 + i, y, { mask: i === 0 ? 1 : i === n - 1 ? 4 : 5 }]); return out; };
+  const defaultLayout = [
+    ['town_center', 1, 10, 10], ['house', 1, 6, 10], ['house', 1, 6, 12], ['house', 1, 3, 10], ['house', 1, 3, 12], ['market', 1, 6, 6], ['monastery', 1, 10, 6], ['university', 1, 14, 6],
+    ['castle', 1, 18, 6], ['mill', 1, 15, 10, { frame: 2 }], ['farm', 1, 15, 12, { fill: 1 }], ['farm', 1, 18, 11, { fill: 0.5 }], ['lumber_camp', 1, 2, 6], ['mining_camp', 1, 22, 12],
+    ['barracks', 1, 10, 15], ['archery_range', 1, 14, 16], ['stable', 1, 6, 15], ['blacksmith', 1, 2, 14], ['siege_workshop', 1, 10, 19], ['watch_tower', 1, 14, 15], ['outpost', 1, 21, 16],
+    ...wallRun('palisade', 3, 23, 6, 1), ...wallRun('stone_wall', 14, 23, 3, 1), ['gate', 1, 17, 23, { axis: 'x', open: false }], ...wallRun('stone_wall', 18, 23, 3, 1),
+  ];
+  const layout = JSON.parse(q.get('layout') || 'null') || defaultLayout;
+  const age = Number(q.get('age') || 1);
+  const items = layout.map(([type, team, tx, ty, state]) => ({ type, team, tx, ty, state, n: BUILDINGS[type].size, key: tx + ty + BUILDINGS[type].size })).sort((a, b) => a.key - b.key);
+  if (q.get('res')) {                                    // add natural resources from resources.js (trees, mines, berries, decor)
+    const R = await import('../../js/art/resources.js');
+    let seed = 12345; const rn = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const occ = new Set(); for (const it of items) for (let x = it.tx - 1; x < it.tx + it.n + 1; x++) for (let y = it.ty - 1; y < it.ty + it.n + 1; y++) occ.add(x + ',' + y);
+    const pushRes = (kind, v, fill, tx, ty) => items.push({ res: [kind, v, fill], tx, ty, n: 1, key: tx + ty + 1 });
+    for (let x = -2; x < 26; x++) for (let y = -2; y < 26; y++) {
+      if (occ.has(x + ',' + y)) continue;
+      const edge = Math.min(x + 2, y + 2, 26 - x, 26 - y), forest = (x < 3 || y < 2 || x > 22 || y > 20) && rn() < 0.55 + (edge < 4 ? 0.2 : 0);
+      if (forest) pushRes('tree', (rn() * 64) | 0, 1, x, y);
+      else if (rn() < 0.05) { const d = R.getDecorSprite(['tuft', 'flowers', 'rocks', 'mushrooms', 'fern', 'shrub', 'pebbles'][(rn() * 7) | 0], (rn() * 8) | 0); items.push({ decor: d, tx: x + rn(), ty: y + rn(), n: 0, key: x + y + 1 }); }
+    }
+    pushRes('gold_mine', 0, 1, 24, 8); pushRes('stone_mine', 0, 1, 25, 10); pushRes('berries', 0, 1, 23, 18); pushRes('berries', 1, 0.5, 24, 19); pushRes('carcass_deer', 0, 1, 20, 21);
+    items.sort((a, b) => a.key - b.key);
+  }
+  for (const it of items) {
+    const cxT = it.tx + it.n / 2, cyT = it.ty + it.n / 2;
+    const [sx, sy] = iso(cxT, cyT);
+    let s;
+    if (it.res) { const R = await import('../../js/art/resources.js'); s = R.getResourceSprite(it.res[0], it.res[1], it.res[2]); }
+    else if (it.decor) s = it.decor;
+    else s = B.getBuildingSprite(it.type, it.team, age, it.state);
+    ctx.drawImage(s.canvas, sx - s.ax * Z, sy - s.ay * Z, s.w * Z, s.h * Z);
+  }
+  const [vx, vy] = iso(11, 7.5); villager(vx, vy);
+}
+ctx.restore();
+if (times.length) console.log('avg ms/sprite (incl. cache hits)', (times.reduce((a, b) => a + b, 0) / times.length).toFixed(2), 'max', Math.max(...times).toFixed(1));
+window.__done = true;
+</script>

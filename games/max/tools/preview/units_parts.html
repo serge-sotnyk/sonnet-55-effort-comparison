@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<pre id="out" style="font:11px monospace"></pre>
+<script type="module">
+import { setSpriteScale } from '../../js/art/common.js';
+setSpriteScale(2);
+const U = await import('../../js/art/units.js');
+const res = {};
+for (const id of U.allUnitTypes()) {
+  let n = 0, c = 0, ms = 0;
+  for (const anim of ['idle', 'walk', 'attack']) for (let d = 0; d < 8; d += 3) { const f = U.animFrames(id, anim); for (let i = 0; i < f; i += 2) { const t0 = performance.now(); const S = U.buildUnitScene(id, 1, d, anim, i, 0); ms += performance.now() - t0; n += S.parts.length; c++; } }
+  res[id] = { parts: +(n / c).toFixed(1), buildMs: +(ms / c).toFixed(3) };
+}
+document.getElementById('out').textContent = JSON.stringify(res);
+window.__result = res; window.__done = true;
+</script>

@@ -1,0 +1,59 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>units dev</title>
+<style>html,body{margin:0;background:#4f7f3f;font:11px monospace;color:#fff}canvas{display:block}</style>
+<canvas id="c"></canvas>
+<script type="module">
+import { setSpriteScale } from '../../js/art/common.js';
+setSpriteScale(window.devicePixelRatio >= 1.5 ? 2 : 1);
+const U = await import('../../js/art/units.js');
+const q = new URLSearchParams(location.search);
+const types = (q.get('types') || 'villager').split(',');
+const mode = q.get('mode') || 'dirs';         // dirs | frames | anims
+const anim = q.get('anim') || 'idle';
+const team = +(q.get('team') || 1);
+const zoom = +(q.get('zoom') || 3);
+const variant = +(q.get('variant') || 0);
+const carry = q.get('carry') || null;
+const dirsQ = (q.get('dirs') || '0,1,2,3,4,5,6,7').split(',').map(Number);
+const cw = +(q.get('cw') || 60), ch = +(q.get('ch') || 74), gy = +(q.get('gy') || 0.8);
+const anchor = q.get('anchor') === '1';
+const bg = q.get('bg') || '#587f43';
+const opts = { variant, carry };
+let cells = [];   // {label, type, dir, anim, frame, team}
+if (mode === 'dirs') {
+  for (const t of types) for (const d of dirsQ) cells.push({ t, d, a: anim, f: +(q.get('frame') || 0), row: types.indexOf(t), col: d });
+} else if (mode === 'frames') {
+  for (const t of types) for (const d of dirsQ) { const n = U.animFrames(t, anim); for (let f = 0; f < n; f++) cells.push({ t, d, a: anim, f, row: types.indexOf(t) * dirsQ.length + dirsQ.indexOf(d), col: f }); }
+} else if (mode === 'anims') {
+  const as = (q.get('anims') || 'idle,walk,attack,death').split(',');
+  for (const t of types) { let col = 0; for (const a of as) { const n = U.animFrames(t, a); for (let f = 0; f < n; f++) cells.push({ t, d: dirsQ[0], a, f, row: types.indexOf(t), col: col++ }); } }
+}
+const cols = Math.max(...cells.map(c => c.col)) + 1, rows = Math.max(...cells.map(c => c.row)) + 1;
+const W = cols * cw * zoom, H = rows * ch * zoom;
+const cv = document.getElementById('c');
+const dpr = window.devicePixelRatio;
+cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+const t0 = performance.now();
+for (const c of cells) {
+  const x = (c.col + 0.5) * cw * zoom, y = (c.row + gy) * ch * zoom;
+  // ground diamond for scale
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x, y - 16 * zoom); ctx.lineTo(x + 32 * zoom, y); ctx.lineTo(x, y + 16 * zoom); ctx.lineTo(x - 32 * zoom, y); ctx.closePath(); ctx.stroke();
+  // soft shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(x + 1 * zoom, y + 1 * zoom, 9 * zoom, 4.5 * zoom, 0, 0, 6.3); ctx.fill();
+  const s = U.getUnitSprite(c.t, team, c.d, c.a, c.f, opts);
+  ctx.drawImage(s.canvas, x - s.ax * zoom, y - s.ay * zoom, s.w * zoom, s.h * zoom);
+  if (anchor) { ctx.fillStyle = '#f0f'; ctx.fillRect(x - 1, y - 1, 3, 3); }
+}
+const el = performance.now() - t0;
+ctx.fillStyle = '#fff'; ctx.font = '11px monospace';
+let labs = new Set();
+for (const c of cells) { const k = c.row; if (c.col === 0 && !labs.has(k)) { labs.add(k); ctx.fillText(c.t + ' d' + c.d + ' ' + c.a, 4, (c.row + 0.08) * ch * zoom + 10); } }
+ctx.fillText('gen ' + el.toFixed(0) + 'ms for ' + cells.length + ' sprites', 4, H - 4);
+window.__done = true;
+console.log('rendered', cells.length, 'sprites in', el.toFixed(1), 'ms');
+</script>

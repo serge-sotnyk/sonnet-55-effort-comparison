@@ -7,3 +7,5 @@ runs/*/stream.jsonl
 runs/*/stderr.log
 runs/*/status
 runs/*-launcher.log
+runs/*/stream-*.jsonl
+runs/*/stderr-*.log

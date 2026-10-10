@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>unit heads</title>
+<style>html,body{margin:0;background:#587f43;font:11px monospace;color:#fff}canvas{display:block}</style>
+<canvas id="c"></canvas>
+<script type="module">
+import { setSpriteScale } from '../../js/art/common.js';
+setSpriteScale(window.devicePixelRatio >= 1.5 ? 2 : 1);
+const U = await import('../../js/art/units.js');
+const C = await import('../../js/art/units_core.js');
+const q = new URLSearchParams(location.search);
+const types = (q.get('types') || 'militia').split(',');
+const dirs = (q.get('dirs') || '1,0,3,5').split(',').map(Number);
+const zoom = +(q.get('zoom') || 9), half = +(q.get('half') || 10), team = +(q.get('team') || 1);
+const anim = q.get('anim') || 'idle';
+const cw = half * 2 * zoom, ch = half * 2 * zoom;
+const cv = document.getElementById('c'), dpr = devicePixelRatio;
+const W = cw * dirs.length, H = ch * types.length;
+cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr); ctx.fillStyle = '#587f43'; ctx.fillRect(0, 0, W, H);
+ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+types.forEach((t, r) => dirs.forEach((d, c) => {
+  const S = U.buildUnitScene(t, team, d, anim, 0, +(q.get('variant') || 0));
+  const s = C.renderSprite(S);
+  const h = S.headScr || [0, -28];
+  ctx.save(); ctx.beginPath(); ctx.rect(c * cw, r * ch, cw, ch); ctx.clip();
+  const cx = c * cw + cw / 2, cy = r * ch + ch / 2;
+  ctx.drawImage(s.canvas, cx - (s.ax + h[0]) * zoom, cy - (s.ay + h[1]) * zoom - 1.5 * zoom, s.w * zoom, s.h * zoom);
+  ctx.restore();
+  if (c === 0) { ctx.fillStyle = '#fff'; ctx.fillText(t, c * cw + 4, r * ch + 12); }
+}));
+window.__done = true;
+</script>

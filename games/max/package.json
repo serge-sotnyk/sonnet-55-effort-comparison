@@ -1,0 +1,11 @@
+{
+  "name": "age-of-crowns",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A browser real-time strategy game in the spirit of Age of Empires II",
+  "scripts": {
+    "start": "node server.mjs 8080",
+    "test": "node tests/sim.test.mjs"
+  }
+}

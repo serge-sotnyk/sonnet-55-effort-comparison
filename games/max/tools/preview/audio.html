@@ -1,0 +1,136 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Age of Crowns - audio preview</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #14110d; color: #e8dcc2; font: 13px/1.35 Georgia, 'Times New Roman', serif; }
+  header { position: sticky; top: 0; z-index: 5; background: #1d1810f2; border-bottom: 1px solid #5a4727; padding: 8px 14px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; backdrop-filter: blur(4px); }
+  h1 { font-size: 17px; margin: 0 8px 0 0; color: #f0c76a; letter-spacing: .5px; }
+  button { background: #2e2517; color: #f1e4c4; border: 1px solid #6b5530; border-radius: 4px; padding: 4px 9px; font: inherit; cursor: pointer; }
+  button:hover { background: #44341d; border-color: #c9a24f; }
+  button:active, button.on { background: #7a5a1f; color: #fff; }
+  button.big { padding: 6px 14px; font-weight: bold; }
+  label { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  input[type=range] { width: 92px; accent-color: #d4a73e; }
+  main { padding: 10px 14px 60px; max-width: 1500px; }
+  section { margin: 12px 0; }
+  h2 { font-size: 14px; margin: 0 0 6px; color: #d4a73e; border-bottom: 1px solid #3d311c; padding-bottom: 2px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 5px; }
+  .grid button { font: 12px ui-monospace, Menlo, monospace; }
+  #meter { background: #0d0b08; border: 1px solid #4a3a20; border-radius: 3px; }
+  #stats { font: 11px ui-monospace, Menlo, monospace; color: #a99a78; white-space: pre; }
+  .moods button { min-width: 84px; }
+  .hint { color: #9a8b69; font-size: 12px; }
+</style>
+<header>
+  <h1>Age of Crowns - audio</h1>
+  <button id="init" class="big">Enable audio</button>
+  <label>master <input id="vMaster" type="range" min="0" max="1" step="0.01" value="1"></label>
+  <label>sfx <input id="vSfx" type="range" min="0" max="1" step="0.01" value="1"></label>
+  <label>music <input id="vMusic" type="range" min="0" max="1" step="0.01" value="1"></label>
+  <label>ambient <input id="vAmb" type="range" min="0" max="1" step="0.01" value="1"></label>
+  <label><input id="mute" type="checkbox"> mute</label>
+  <canvas id="meter" width="260" height="46"></canvas>
+  <div id="stats"></div>
+</header>
+<main>
+  <section>
+    <h2>Music &amp; ambience</h2>
+    <div class="grid moods">
+      <button id="musicStart">Start music</button>
+      <button id="musicStop">Stop music</button>
+      <button data-mood="peace">peace</button>
+      <button data-mood="tense">tense</button>
+      <button data-mood="battle">battle</button>
+      <button id="ambStart">Start ambience</button>
+      <button id="ambStop">Stop ambience</button>
+      <button id="duck">duck(0.6, 3 s)</button>
+      <button id="stopAll">stopAll()</button>
+      <button id="spam">spam 1000 plays</button>
+      <button id="demoBattle">demo: peace, then battle after 8 s</button>
+    </div>
+    <p class="hint">Moods crossfade in 2-4 s. Hold a sound button to repeat it (about 7 per second) and listen to the variation.</p>
+  </section>
+  <section>
+    <h2>Play options</h2>
+    <label>vol <input id="oVol" type="range" min="0" max="1" step="0.01" value="1"></label>
+    <label>pan <input id="oPan" type="range" min="-1" max="1" step="0.01" value="0"></label>
+    <label>rate <input id="oRate" type="range" min="0.5" max="2" step="0.01" value="1"></label>
+    <span class="hint">(values apply to every sound button below)</span>
+  </section>
+  <div id="groups"></div>
+</main>
+<script type="module">
+  import { audio, SFX_NAMES } from '../../js/audio/audio.js';
+  import { sfxMeta } from '../../js/audio/sfx.js';
+
+  const $ = (id) => document.getElementById(id);
+  const groups = [
+    ['UI', /^ui_/], ['Unit acknowledgements', /^ack_/],
+    ['Economy &amp; buildings', /^(place_building|building_complete|hammer|chop|tree_fall|mine|farm|forage|butcher|drop_|unit_trained|research_done|age_up|market_|garrison|ungarrison)/],
+    ['Combat', /^(sword_|blunt_|arrow_|javelin|axe_throw|bolt_shoot|catapult|trebuchet|stone_impact|ram_hit|building_collapse|building_fire)/],
+    ['Deaths &amp; animals', /^(unit_die|villager_die|horse_|animal_die|boar_|wolf_|deer_|sheep_)/],
+    ['Monks', /^monk_/],
+    ['Alerts &amp; game flow', /^(alarm_|idle_alert|victory|defeat|countdown_tick|wonder_|relic|game_start)/],
+  ];
+  const used = new Set(), root = $('groups');
+  const opts = () => ({ vol: +$('oVol').value, pan: +$('oPan').value, rate: +$('oRate').value });
+  function play(name) { ensure(); audio.play(name, opts()); }
+  function ensure() { if (!audio.ready) { audio.init(); $('init').textContent = 'Audio on'; } audio.resume(); }
+  const extras = SFX_NAMES.filter(n => !groups.some(([, re]) => re.test(n)));
+  [...groups, ['Other', null]].forEach(([title, re]) => {
+    const names = re ? SFX_NAMES.filter(n => re.test(n) && !used.has(n)) : SFX_NAMES.filter(n => !used.has(n));
+    names.forEach(n => used.add(n));
+    if (!names.length) return;
+    const sec = document.createElement('section');
+    sec.innerHTML = `<h2>${title} (${names.length})</h2><div class="grid"></div>`;
+    const grid = sec.querySelector('.grid');
+    for (const n of names) {
+      const b = document.createElement('button'); b.textContent = n;
+      const m = sfxMeta(n); b.title = `prio ${m.prio}, min gap ${m.gap} ms, peak ceiling ${m.lvl} dB, loudness target ${m.loud} dB(A)`;
+      let rep = 0;
+      b.addEventListener('pointerdown', () => { play(n); rep = setInterval(() => play(n), 140); });
+      for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(ev, () => { clearInterval(rep); });
+      grid.appendChild(b);
+    }
+    root.appendChild(sec);
+  });
+
+  $('init').onclick = () => { ensure(); };
+  $('vMaster').oninput = (e) => audio.setMasterVolume(+e.target.value);
+  $('vSfx').oninput = (e) => audio.setSfxVolume(+e.target.value);
+  $('vMusic').oninput = (e) => audio.setMusicVolume(+e.target.value);
+  $('vAmb').oninput = (e) => audio.setAmbientVolume(+e.target.value);
+  $('mute').onchange = (e) => audio.setMuted(e.target.checked);
+  $('musicStart').onclick = () => { ensure(); audio.music.start(); };
+  $('musicStop').onclick = () => audio.music.stop();
+  $('ambStart').onclick = () => { ensure(); audio.ambient.start(); };
+  $('ambStop').onclick = () => audio.ambient.stop();
+  $('duck').onclick = () => { ensure(); audio.duck(0.6, 3); };
+  $('stopAll').onclick = () => audio.stopAll();
+  $('spam').onclick = () => { ensure(); const t = performance.now(); for (let i = 0; i < 1000; i++) audio.play(SFX_NAMES[(Math.random() * SFX_NAMES.length) | 0], { vol: Math.random(), pan: Math.random() * 2 - 1 }); console.log('1000 plays took', (performance.now() - t).toFixed(1), 'ms'); };
+  $('demoBattle').onclick = () => { ensure(); audio.music.setMood('peace'); audio.music.start(); audio.ambient.start(); setTimeout(() => audio.music.setMood('battle'), 8000); };
+  document.querySelectorAll('[data-mood]').forEach(b => b.onclick = () => { ensure(); audio.music.setMood(b.dataset.mood); if (!audio.debug.musicParts) audio.music.start(); });
+
+  // live meter + stats
+  const cv = $('meter'), c2 = cv.getContext('2d'), st = $('stats');
+  const loop = () => {
+    c2.fillStyle = '#0d0b08'; c2.fillRect(0, 0, cv.width, cv.height);
+    const d = audio.debug;
+    document.querySelectorAll('[data-mood]').forEach(b => b.classList.toggle('on', b.dataset.mood === audio.music.mood));
+    if (d.master && d.master.analyser) {
+      const an = d.master.analyser, N = an.frequencyBinCount, f = new Float32Array(N), t = new Float32Array(an.fftSize);
+      an.getFloatFrequencyData(f); an.getFloatTimeDomainData(t);
+      let pk = 0, ss = 0; for (let i = 0; i < t.length; i++) { pk = Math.max(pk, Math.abs(t[i])); ss += t[i] * t[i]; }
+      const rms = 20 * Math.log10(Math.sqrt(ss / t.length) + 1e-9), pdb = 20 * Math.log10(pk + 1e-9);
+      for (let i = 0; i < 200; i++) { const bin = Math.floor(Math.pow(i / 200, 2.2) * N * 0.55) + 1, v = Math.max(0, (f[bin] + 100) / 100); c2.fillStyle = `hsl(${40 - v * 30} 80% ${25 + v * 35}%)`; c2.fillRect(i, 30 - v * 30, 1, v * 30); }
+      const w = (x) => Math.max(0, Math.min(1, (x + 60) / 60)) * cv.width;
+      c2.fillStyle = '#3a8f4a'; c2.fillRect(0, 34, w(rms), 5);
+      c2.fillStyle = pdb > -1 ? '#e04b3a' : '#d4a73e'; c2.fillRect(0, 40, w(pdb), 5);
+      st.textContent = `peak ${pdb.toFixed(1)} dBFS  rms ${rms.toFixed(1)} dBFS\nvoices ${d.voices}/28  nodes ${d.liveNodes}  played ${d.played}  dropped ${JSON.stringify(d.dropped)}\nmusic parts ${d.musicParts} (voices ${d.musicActive})  mood ${audio.music.mood}  ctx ${d.ctx.state}`;
+    } else st.textContent = 'audio not started - click "Enable audio" or any sound';
+    requestAnimationFrame(loop);
+  };
+  loop();
+</script>

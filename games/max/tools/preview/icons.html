@@ -1,0 +1,126 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Age of Crowns - icon contact sheet</title>
+<style>
+  html, body { margin: 0; background: #1a140d; color: #e8dcc0; font: 11px/1.3 system-ui, sans-serif; }
+  h2 { margin: 10px 8px 4px; font: 600 13px system-ui; color: #f0cf7a; }
+  .wrap { padding: 4px 8px; }
+  .row { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+  .lbl { width: 86px; flex: none; color: #bba; font-size: 11px; }
+  .dark { background: #2a2118; padding: 3px; display: inline-flex; gap: 4px; align-items: center; border-radius: 3px; }
+  .light { background: #e8e0cc; padding: 3px; display: inline-flex; gap: 4px; align-items: center; border-radius: 3px; }
+  .cell { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; font-size: 9px; color: #998; }
+  .light .cell { color: #554; }
+  canvas { display: block; }
+  .grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tile { display: flex; flex-direction: column; align-items: center; width: 100px; font-size: 9px; text-align: center; color: #bba; }
+  .zoom canvas { image-rendering: pixelated; }
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script type="module">
+import { setSpriteScale } from '../../js/art/common.js';
+setSpriteScale(window.devicePixelRatio >= 1.5 ? 2 : 1);
+const { getIcon, glyphNames } = await import('../../js/art/icons.js?v=' + Date.now());
+const { TECHS } = await import('../../js/data/techs.js');
+const q = new URLSearchParams(location.search);
+const sec = q.get('sec') || 'all';
+const out = document.getElementById('out');
+const ACC = ['', 'gold', 'stone', 'blood', 'holy', 'steel', 'wood', 'food'];
+const UI = 'attack move stop delete garrison ungarrison rally repair build_eco build_mil back cancel stance_aggressive stance_defensive stand_ground stance_passive idle_villager idle_military menu buy sell attack_move patrol heal convert unpack wall gate flare speed pause sound mute chat objectives trade research queue town_center select_all minimap_signal'.split(' ');
+
+function el(tag, cls, parent, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; if (parent) parent.appendChild(e); return e; }
+function put(parent, spec, size, label) {
+  const c = el('div', 'cell', parent);
+  let cv;
+  try { cv = getIcon(spec, size); } catch (e) { cv = document.createElement('canvas'); cv.width = cv.height = size; console.error('getIcon failed for ' + spec + ': ' + e.stack); }
+  const shown = document.createElement('canvas'); shown.width = cv.width; shown.height = cv.height;
+  shown.style.width = (cv.style.width || size + 'px'); shown.style.height = (cv.style.height || size + 'px');
+  shown.getContext('2d').drawImage(cv, 0, 0);
+  c.appendChild(shown);
+  if (label !== undefined) el('span', '', c, label);
+  return c;
+}
+function title(t) { el('h2', '', out, t); }
+
+if (sec === 'glyphs' || sec === 'all') {
+  const size = Number(q.get('size') || 96);
+  const accs = (q.get('acc') ? q.get('acc').split(',') : ACC).map(a => a === 'none' ? '' : a);
+  const names = glyphNames();
+  const [a, b] = (q.get('rows') || `0-${names.length}`).split('-').map(Number);
+  title('glyphs x accents @' + size);
+  const w = el('div', 'grid wrap', out);
+  const bgc = q.get('bg') === 'light' ? 'light' : 'dark';
+  for (const n of names.slice(a, b)) {
+    for (const ac of accs) {
+      const t = el('div', 'tile', w); t.style.width = (size + 8) + 'px';
+      const d = el('div', bgc, t); put(d, 'glyph:' + n + (ac ? ':' + ac : ''), size);
+      el('div', '', t, n + (ac ? ':' + ac : ''));
+    }
+  }
+}
+if (sec === 'glyphs48' || sec === 'all') {
+  title('glyphs x accents @48');
+  const w = el('div', 'wrap', out);
+  for (const n of glyphNames()) {
+    const r = el('div', 'row', w); el('div', 'lbl', r, n);
+    const d = el('div', 'dark', r); for (const ac of ACC) put(d, 'glyph:' + n + (ac ? ':' + ac : ''), 48);
+    const l = el('div', 'light', r); for (const ac of ACC) put(l, 'glyph:' + n + (ac ? ':' + ac : ''), 48);
+  }
+}
+if (sec === 'techs' || sec === 'all') {
+  const size = Number(q.get('size') || 52);
+  title('tech icons (' + size + ')');
+  const g = el('div', 'grid wrap', out);
+  const seen = new Set();
+  for (const t of Object.values(TECHS)) {
+    if (t.icon.startsWith('unit:')) continue;
+    const tile = el('div', 'tile', g);
+    el('div', 'dark', tile).appendChild(put(el('div'), t.icon, size).firstChild);
+    el('div', '', tile, t.name + '<br>' + t.icon);
+  }
+}
+if (sec === 'res' || sec === 'all') {
+  title('resource icons 24px on HUD colour (x1 and x4 zoom)');
+  const w = el('div', 'wrap', out);
+  const r = el('div', 'row', w);
+  const d = el('div', 'dark', r); d.style.background = '#2a2118';
+  for (const k of ['food', 'wood', 'gold', 'stone', 'pop']) { const c = put(d, 'res:' + k, 24); el('span', '', d, '1234'); d.style.gap = '10px'; }
+  const r2 = el('div', 'row', w);
+  const d2 = el('div', 'dark', r2);
+  for (const k of ['food', 'wood', 'gold', 'stone', 'pop']) { const c = put(d2, 'res:' + k, 96, k); }
+  const d3 = el('div', 'light', r2);
+  for (const k of ['food', 'wood', 'gold', 'stone', 'pop']) { const c = put(d3, 'res:' + k, 96, k); }
+}
+if (sec === 'ui' || sec === 'all') {
+  const size = Number(q.get('size') || 64);
+  title('ui glyphs @' + size + ' and @32 and @24 (dark / light)');
+  const g = el('div', 'grid wrap', out);
+  for (const n of UI) {
+    const tile = el('div', 'tile', g);
+    const d = el('div', 'dark', tile); put(d, 'ui:' + n, size);
+    const d2 = el('div', 'dark', tile); d2.style.marginTop = '2px'; put(d2, 'ui:' + n, 32); put(d2, 'ui:' + n, 24);
+    const l = el('div', 'light', tile); l.style.marginTop = '2px'; put(l, 'ui:' + n, 32); put(l, 'ui:' + n, 24);
+    el('div', '', tile, n);
+  }
+}
+if (sec === 'civ' || sec === 'all') {
+  title('civ + age icons');
+  const w = el('div', 'wrap', out);
+  const r = el('div', 'row', w);
+  const d = el('div', 'dark', r);
+  for (const c of ['britons', 'franks', 'goths', 'mongols']) put(d, 'civ:' + c, 96, c);
+  for (let i = 0; i < 4; i++) put(d, 'age:' + i, 96, 'age ' + i);
+  const r2 = el('div', 'row', w);
+  const d2 = el('div', 'dark', r2);
+  for (const c of ['britons', 'franks', 'goths', 'mongols']) put(d2, 'civ:' + c, 48, c);
+  for (let i = 0; i < 4; i++) put(d2, 'age:' + i, 48, 'age ' + i);
+  for (let i = 0; i < 4; i++) put(d2, 'age:' + i, 24, 'age ' + i);
+}
+window.__done = true;
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!doctype html><html><body style="margin:0;background:#000"><pre id="o" style="color:#ccc;position:fixed;right:0;top:0"></pre>
+<script type="module">
+const q = new URLSearchParams(location.search);
+const W = 1920, H = 1080, d = Number(q.get('dpr') || 1);
+const cv = document.createElement('canvas'); cv.width = W * d; cv.height = H * d; cv.style.width = W + 'px'; cv.style.height = H + 'px'; document.body.appendChild(cv);
+const ctx = cv.getContext('2d'); ctx.scale(d, d);
+function mkLayer(w, h, alpha) { const c = document.createElement('canvas'); c.width = w * d; c.height = h * d; const x = c.getContext('2d'); const g = x.createLinearGradient(0, 0, w * d, h * d); g.addColorStop(0, 'rgb(200,120,60)'); g.addColorStop(1, 'rgb(40,60,120)'); x.fillStyle = g; x.fillRect(0, 0, w * d, h * d); if (alpha) { x.globalCompositeOperation = 'destination-in'; const m = x.createLinearGradient(0, 0, 0, h * d); m.addColorStop(0, 'rgba(0,0,0,0)'); m.addColorStop(0.3, 'rgba(0,0,0,1)'); x.fillStyle = m; x.fillRect(0, 0, w * d, h * d); } return c; }
+const opaque = mkLayer(W, H, false), alpha = mkLayer(W, H, true), half = mkLayer(W, H / 2, true);
+const rg = ctx.createRadialGradient(500, 500, 0, 500, 500, 800); rg.addColorStop(0, 'rgba(255,180,100,0.4)'); rg.addColorStop(1, 'rgba(255,120,80,0)');
+const lg = ctx.createLinearGradient(0, 0, W, 0); lg.addColorStop(0, 'rgba(255,170,100,0.5)'); lg.addColorStop(1, 'rgba(110,80,170,0.4)');
+const tests = {
+  'drawImage opaque full': () => ctx.drawImage(opaque, 0, 0, W, H),
+  'drawImage alpha full': () => ctx.drawImage(alpha, 0, 0, W, H),
+  'drawImage alpha half-height': () => ctx.drawImage(half, 0, 0, W, H / 2),
+  'drawImage alpha full globalAlpha .8': () => { ctx.globalAlpha = 0.8; ctx.drawImage(alpha, 0, 0, W, H); ctx.globalAlpha = 1; },
+  'fillRect linear gradient full': () => { ctx.fillStyle = lg; ctx.fillRect(0, 0, W, H); },
+  'fillRect radial gradient full (lighter)': () => { ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over'; },
+  'fillRect linear soft-light full': () => { ctx.globalCompositeOperation = 'soft-light'; ctx.fillStyle = lg; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over'; },
+  'fillRect flat color full': () => { ctx.fillStyle = '#ffdfa8'; ctx.fillRect(0, 0, W, H); },
+};
+const out = {};
+for (const [name, fn] of Object.entries(tests)) {
+  for (let i = 0; i < 5; i++) fn(); ctx.getImageData(0, 0, 1, 1);
+  const N = 40; const t0 = performance.now();
+  for (let i = 0; i < N; i++) fn();
+  const tJs = performance.now() - t0;
+  ctx.getImageData(0, 0, 1, 1);
+  const tAll = performance.now() - t0;
+  out[name] = { jsMsPerOp: +(tJs / N).toFixed(3), totalMsPerOp: +(tAll / N).toFixed(3) };
+}
+document.getElementById('o').textContent = JSON.stringify(out, null, 1); window.__result = out; window.__done = true;
+</script></body></html>

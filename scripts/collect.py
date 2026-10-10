@@ -26,19 +26,35 @@ def main(level):
     run_dir = REPO / "runs" / level
     meta = json.loads((run_dir / "meta.json").read_text())
     # A run can end several turns (e.g. when the model waits on background
-    # monitors). Cost, usage, API time and subagent stats are cumulative, so the
-    # last result event holds the totals; turns and denials are per segment.
-    results = []
-    for line in (run_dir / "stream.jsonl").read_text().splitlines():
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if event.get("type") == "result":
-            results.append(event)
-    result = results[-1] if results else None
-    if result is None:
-        sys.exit(f"no result event in {run_dir / 'stream.jsonl'}")
+    # monitors). Within one process, cost, usage, API time and subagent stats are
+    # cumulative, so the last result event holds the totals; turns and denials
+    # are per segment. A run resumed after an interruption (resume-level.sh) adds
+    # stream-2.jsonl, ...; the resumed session carries its cost, usage and API
+    # time forward, so the last part's final event holds the run's totals too.
+    parts = [(run_dir / "stream.jsonl", meta)]
+    n = 2
+    while (run_dir / f"stream-{n}.jsonl").exists():
+        part_meta = run_dir / f"meta-{n}.json"
+        parts.append((run_dir / f"stream-{n}.jsonl",
+                      json.loads(part_meta.read_text()) if part_meta.exists() else {}))
+        n += 1
+
+    all_results, finals = [], []
+    for stream, _ in parts:
+        results = []
+        for line in stream.read_text().splitlines():
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if event.get("type") == "result":
+                results.append(event)
+        all_results += results
+        if results:
+            finals.append(results[-1])
+    if not finals:
+        sys.exit(f"no result event in {run_dir}")
+    result = finals[-1]
 
     # modelUsage covers the main loop and any subagents, per model.
     models = result.get("modelUsage", {})
@@ -48,22 +64,28 @@ def main(level):
         "cache_read": sum(m.get("cacheReadInputTokens", 0) for m in models.values()),
         "cache_write": sum(m.get("cacheCreationInputTokens", 0) for m in models.values()),
     }
+    wall_seconds = sum(m.get("wall_seconds", 0) for _, m in parts)
+    exit_code = parts[-1][1].get("exit_code", meta["exit_code"])
     row = {
         "effort": LABELS[level],
         "model": meta["model"],
         "cost": round(result.get("total_cost_usd", 0), 2),
         **tokens,
         "total_tokens": sum(tokens.values()),
-        "elapsed": fmt_duration(meta["wall_seconds"]),
+        "elapsed": fmt_duration(wall_seconds),
         "api_time": fmt_duration(result.get("duration_api_ms", 0) / 1000),
-        "num_turns": sum(r.get("num_turns") or 0 for r in results),
-        "result_segments": len(results),
-        "subagents_spawned": result.get("subagent_stats", {}).get("spawned"),
-        "permission_denials": sum(len(r.get("permission_denials") or []) for r in results),
+        "num_turns": sum(r.get("num_turns") or 0 for r in all_results),
+        "result_segments": len(all_results),
+        "parts": len(parts),
+        "cost_by_part": [round(b.get("total_cost_usd", 0) - a.get("total_cost_usd", 0), 2)
+                         for a, b in zip([{}] + finals[:-1], finals)],
+        "subagents_spawned": sum(f.get("subagent_stats", {}).get("spawned") or 0 for f in finals),
+        "permission_denials": sum(len(r.get("permission_denials") or []) for r in all_results),
         "cost_by_model": {k: round(v.get("costUSD", 0), 2) for k, v in models.items()},
         "cli_version": meta["cli_version"],
-        "status": "Complete" if result.get("subtype") == "success" and meta["exit_code"] == 0
-                  else f"Ended: {result.get('subtype')} / exit {meta['exit_code']}",
+        "status": "Complete" if result.get("subtype") == "success" and not result.get("is_error")
+                  and exit_code == 0
+                  else f"Ended: {result.get('subtype')} / exit {exit_code}",
         "play": f"games/{level}/",
     }
 

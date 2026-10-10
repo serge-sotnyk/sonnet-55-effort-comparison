@@ -20,6 +20,11 @@ Then open `http://127.0.0.1:8766/games/<level>/`.
 |---|---:|---:|---:|---:|---|---|
 | [Low](games/low/) | 25m 07s | 23m 15s | 8,056,152 | $4.30 | 1% → 2% | 19m 10s · 3,140,950 · $3.79 |
 | [High](games/high/) | 1h 25m 34s | 1h 06m 43s | 106,831,205 | $28.85 | 2% → 4% | 1h 00m 33s · 30,665,190 · $16.11 |
+| [Max](games/max/)¹ | 2h 41m 53s | 6h 06m 59s | 505,582,688 | $147.82 | 0% → 12% | 2h 58m 27s · 173,338,200 · $69.14 |
+
+¹ Max ran in two parts. Part 1 used four parallel background subagents (5h 46m of API time in 1h 33m) and hit the Team plan's 5-hour session limit after 1h 41m and $123.42. After the window reset, the same session was resumed in the same folder with a neutral `Continue` (`scripts/resume-level.sh`), as the original experiment did after a computer-sleep interruption. Part 2 finished in 1h 01m for $24.40. The run also drove the installed Chrome headlessly from several agents at once, which overloaded the laptop (load average about 190) and crashed the macOS window server during part 1.
+
+In the exported Max build, two helper scripts in `tools/` and two design notes in `docs/` contained absolute paths to the run folder. The imports were made relative and the notes use `~/…`; gameplay files are unchanged.
 
 Full metrics are in [results.json](results.json); per-run final result events are in `runs/<level>/result.json`.
 
@@ -50,4 +55,5 @@ Step-by-step notes for repeating the runs, including the isolation pitfalls and 
 - Headless (`claude -p … --output-format stream-json`) instead of an interactive session; same prompt, no follow-up prompts.
 - `--safe-mode`, auto-memory disabled (`CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, `autoMemoryEnabled: false`), clean environment without API-key/base-URL overrides, subscription login.
 - `--permission-mode auto` instead of manual approvals; denials are counted in `results.json`.
+- Subscription usage comes from the `rate_limit_event` events in the stream where available (Max), otherwise from `/usage` screenshots (Low, High).
 - CLI version is recorded per run (Low: 2.1.289; the original used 2.1.281).

@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Buildings profiler</title>
+<body style="background:#222;color:#ddd;font:12px monospace"><pre id="out">running...</pre>
+<script type="module">
+// Profiles sprite generation per Scene method.  ?type=castle&age=2&n=20
+import { setSpriteScale } from '../../js/art/common.js';
+const q = new URLSearchParams(location.search);
+setSpriteScale(window.devicePixelRatio >= 1.5 ? 2 : 1);
+const K = await import('../../js/art/buildings_kit.js');
+const B = await import('../../js/art/buildings.js');
+const { BUILDINGS } = await import('../../js/data/buildings.js');
+const type = q.get('type') || 'castle', age = Number(q.get('age') || 2), N = Number(q.get('n') || 20);
+const def = B.buildingsDebugInfo.DEFS[type], size = BUILDINGS[type].size;
+const acc = {}, cnt = {};
+const skip = (q.get('skip') || '').split(',').filter(Boolean);
+const proto = K.Scene.prototype;
+for (const name of Object.getOwnPropertyNames(proto)) {
+  if (name === 'constructor' || typeof proto[name] !== 'function') continue;
+  const orig = skip.includes(name) ? function () { } : proto[name]; let depth = 0;
+  proto[name] = function (...a) {
+    const t = performance.now(); depth++;
+    try { return orig.apply(this, a); } finally { depth--; if (depth === 0) { acc[name] = (acc[name] || 0) + performance.now() - t; } cnt[name] = (cnt[name] || 0) + 1; }
+  };
+}
+function once() {
+  const g = new K.Scene(size, { stage: 4, team: 1, age, seed: 5, hmax: def.hmax, side: def.side });
+  g.setHc(def.Hc || 40);
+  const t0 = performance.now();
+  def.draw(g, age, {}, 4);
+  const t1 = performance.now();
+  g.c.getImageData(0, 0, 1, 1);                         // force the queued raster work to execute
+  const t2 = performance.now();
+  const r = g.finish();
+  r.surf.ctx.getImageData(0, 0, 1, 1);
+  return [t1 - t0, t2 - t1, performance.now() - t2];
+}
+for (let i = 0; i < 5; i++) once();                     // warm-up
+for (const k in acc) acc[k] = 0; for (const k in cnt) cnt[k] = 0;
+let td = 0, tf = 0, tr = 0;
+for (let i = 0; i < N; i++) { const [a, r, b] = once(); td += a; tf += b; tr += r; }
+const rows = Object.entries(acc).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k.padEnd(14)} ${(v / N).toFixed(2)} ms   calls/iter ${(cnt[k] / N).toFixed(0)}`);
+const txt = `${type} age${age}  draw(js) ${(td / N).toFixed(2)} ms   raster-flush ${(tr / N).toFixed(2)} ms   finish ${(tf / N).toFixed(2)} ms\n` + rows.join('\n');
+document.getElementById('out').textContent = txt; console.log(txt.replace(/\n/g, ' | '));
+</script>

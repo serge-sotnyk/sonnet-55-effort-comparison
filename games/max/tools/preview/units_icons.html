@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>unit icons</title>
+<style>html,body{margin:0;background:#2a2118;font:10px monospace;color:#ddd}.row{display:flex;flex-wrap:wrap;gap:6px;padding:6px}.c{display:flex;flex-direction:column;align-items:center;min-width:84px}</style>
+<div id="root"></div>
+<script type="module">
+import { setSpriteScale } from '../../js/art/common.js';
+setSpriteScale(window.devicePixelRatio >= 1.5 ? 2 : 1);
+const U = await import('../../js/art/units.js');
+const q = new URLSearchParams(location.search);
+const team = +(q.get('team') || 1);
+const zoom = +(q.get('zoom') || 1);
+const types = q.get('types') ? q.get('types').split(',') : U.allUnitTypes();
+const root = document.getElementById('root');
+const t0 = performance.now();
+for (const mode of ['icon', 'portrait']) {
+  const row = document.createElement('div'); row.className = 'row'; root.appendChild(row);
+  for (const t of types) {
+    const c = mode === 'icon' ? U.getUnitIcon(t, team) : U.getUnitPortrait(t, team);
+    const cell = document.createElement('div'); cell.className = 'c';
+    c.style.width = (c.width / (window.devicePixelRatio >= 1.5 ? 2 : 1) * zoom) + 'px';
+    cell.appendChild(c);
+    const l = document.createElement('div'); l.textContent = t; cell.appendChild(l);
+    row.appendChild(cell);
+  }
+}
+console.log('icons in', (performance.now() - t0).toFixed(0), 'ms');
+</script>

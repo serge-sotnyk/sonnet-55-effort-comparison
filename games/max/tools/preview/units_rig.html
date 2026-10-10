@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>units rig test</title>
+<style>html,body{margin:0;background:#587f43;font:11px monospace;color:#fff}canvas{display:block}</style>
+<canvas id="c"></canvas>
+<script type="module">
+import { setSpriteScale } from '../../js/art/common.js';
+setSpriteScale(window.devicePixelRatio >= 1.5 ? 2 : 1);
+const { Scene, renderSprite } = await import('../../js/art/units_core.js');
+const { quadPose, drawQuad } = await import('../../js/art/units_quad.js');
+const q = new URLSearchParams(location.search);
+const sp = q.get('sp') || 'horse', anim = q.get('anim') || 'idle', zoom = +(q.get('zoom') || 3);
+const mode = q.get('mode') || 'dirs';
+const Qs = {
+  horse: { sp: 'horse', coat: '#8a4a26', mane: '#2a1810', socks: '#3a2418', nostril: true, belly: '#a8643a' },
+  camel: { sp: 'camel', coat: '#b99058', mane: '#6a4a2a', socks: '#a07a48', nostril: true },
+};
+const S = new Scene();
+const cells = [];
+if (mode === 'dirs') for (let d = 0; d < 8; d++) cells.push([d, anim, 0, d, 0]);
+else for (let f = 0; f < 8; f++) cells.push([+(q.get('dir') || 0), anim, f, f, 0]);
+const cw = 100, ch = 90;
+const cv = document.getElementById('c'), dpr = devicePixelRatio;
+const W = Math.min(cells.length, 8) * cw * zoom, H = ch * zoom;
+cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+ctx.fillStyle = '#587f43'; ctx.fillRect(0, 0, W, H);
+const t0 = performance.now();
+for (const [dir, an, fr, col] of cells) {
+  S.begin(dir);
+  const P = quadPose(sp, null, an, fr);
+  drawQuad(S, Qs[sp], P, { main: '#2f6fe0', light: '#86b4ff', dark: '#173a82' });
+  const s = renderSprite(S);
+  const x = (col + 0.5) * cw * zoom, y = 0.75 * ch * zoom;
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.beginPath(); ctx.moveTo(x, y - 16 * zoom); ctx.lineTo(x + 32 * zoom, y); ctx.lineTo(x, y + 16 * zoom); ctx.lineTo(x - 32 * zoom, y); ctx.closePath(); ctx.stroke();
+  ctx.drawImage(s.canvas, x - s.ax * zoom, y - s.ay * zoom, s.w * zoom, s.h * zoom);
+}
+console.log('ok', performance.now() - t0);
+</script>

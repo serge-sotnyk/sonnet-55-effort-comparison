@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Age of Crowns - menu art preview</title>
+<style>
+  html, body { margin: 0; background: #14100a; color: #e8dcc0; font: 11px/1.3 system-ui, sans-serif; overflow-x: hidden; }
+  h2 { margin: 8px; font: 600 13px system-ui; color: #f0cf7a; }
+  .row { display: flex; gap: 12px; padding: 6px 8px; align-items: flex-start; flex-wrap: wrap; }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 2px; color: #998; }
+  .chk { background: repeating-conic-gradient(#3a3226 0% 25%, #2a2218 0% 50%) 50% / 24px 24px; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script type="module">
+import { setSpriteScale } from '../../js/art/common.js';
+setSpriteScale(window.devicePixelRatio >= 1.5 ? 2 : 1);
+const v = '?v=' + Date.now();
+const { getCivEmblem, drawMenuBackdrop } = await import('../../js/art/menu.js' + v);
+const { getIcon } = await import('../../js/art/icons.js' + v);
+const q = new URLSearchParams(location.search);
+const sec = q.get('sec') || 'emblems';
+const out = document.getElementById('out');
+function el(tag, cls, parent, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; if (parent) parent.appendChild(e); return e; }
+function show(parent, cv, label, cls) {
+  const c = el('div', 'cell', parent);
+  const s = document.createElement('canvas'); s.width = cv.width; s.height = cv.height;
+  s.style.width = cv.style.width || (cv.width + 'px'); s.style.height = cv.style.height || (cv.height + 'px');
+  s.getContext('2d').drawImage(cv, 0, 0);
+  if (cls) s.className = cls;
+  c.appendChild(s); if (label) el('span', '', c, label);
+}
+if (sec === 'one') {
+  const size = Number(q.get('size') || 512);
+  const r = el('div', 'row', out);
+  for (const c of (q.get('civ') || 'britons').split(',')) show(r, getCivEmblem(c, size), c, 'chk');
+}
+if (sec === 'emblems') {
+  const size = Number(q.get('size') || 256);
+  el('h2', '', out, 'civ emblems @' + size + ' (on checker) and 128');
+  const r = el('div', 'row', out);
+  for (const c of ['britons', 'franks', 'goths', 'mongols']) show(r, getCivEmblem(c, size), c, 'chk');
+  const r2 = el('div', 'row', out);
+  for (const c of ['britons', 'franks', 'goths', 'mongols']) show(r2, getCivEmblem(c, 128), c, 'chk');
+  for (const c of ['britons', 'franks', 'goths', 'mongols']) show(r2, getIcon('civ:' + c, 96), 'icon ' + c);
+  for (const c of ['britons', 'franks', 'goths', 'mongols']) show(r2, getIcon('civ:' + c, 48), '48');
+  for (let i = 0; i < 4; i++) show(r2, getIcon('age:' + i, 96), 'age ' + i);
+  for (let i = 0; i < 4; i++) show(r2, getIcon('age:' + i, 48), '48');
+  for (let i = 0; i < 4; i++) show(r2, getIcon('age:' + i, 24), '24');
+}
+if (sec === 'bg') {
+  const W = Number(q.get('w') || 1280), Hh = Number(q.get('h') || 720), dpr = window.devicePixelRatio || 1;
+  const t = Number(q.get('t') || 0);
+  const cv = document.createElement('canvas'); cv.width = W * dpr; cv.height = Hh * dpr; cv.style.width = W + 'px'; cv.style.height = Hh + 'px';
+  document.body.style.margin = '0'; out.appendChild(cv);
+  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+  const t0 = performance.now();
+  drawMenuBackdrop(ctx, W, Hh, t);
+  window.__buildMs = performance.now() - t0;
+  document.title = 'built in ' + window.__buildMs.toFixed(0) + 'ms';
+  console.log('first frame ms: ' + window.__buildMs.toFixed(1));
+}
+window.__done = true;
+</script>
+</body>
+</html>

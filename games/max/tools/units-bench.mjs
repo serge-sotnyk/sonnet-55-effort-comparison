@@ -1,0 +1,13 @@
+import { chromium } from './node_modules/playwright-core/index.mjs';
+const args = process.argv.slice(2);
+const gpu = args.includes('--gpu');
+const scale = args.find(a => a.startsWith('--scale='))?.split('=')[1] || '2';
+const page_ = args.find(a => a.startsWith('--page='))?.split('=')[1] || 'units_bench';
+const launchArgs = gpu ? ['--enable-gpu-rasterization', '--ignore-gpu-blocklist'] : [];
+const browser = await chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true, args: launchArgs });
+const page = await browser.newPage({ viewport: { width: 1200, height: 800 }, deviceScaleFactor: Number(scale) });
+page.on('pageerror', e => console.log('[pageerror]', e.message));
+await page.goto(`http://localhost:28101/tools/preview/${page_}.html?scale=${scale}`, { waitUntil: 'load' });
+await page.waitForFunction(() => window.__done === true, null, { timeout: 300000 });
+console.log(JSON.stringify(await page.evaluate(() => window.__result)));
+await browser.close();

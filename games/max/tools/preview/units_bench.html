@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>units bench</title>
+<pre id="out" style="font:12px monospace"></pre>
+<script type="module">
+import { setSpriteScale, makeCanvas, addOutline } from '../../js/art/common.js';
+const q = new URLSearchParams(location.search);
+const scale = +(q.get('scale') || 2);
+setSpriteScale(scale);
+const U = await import('../../js/art/units.js');
+const C = await import('../../js/art/units_core.js');
+const out = document.getElementById('out');
+const res = { scale, v: {} };
+const N = +(q.get('n') || 300);
+const sets = [['militia', 'idle'], ['archer', 'walk'], ['champion', 'attack'], ['knight', 'walk'], ['paladin', 'attack'], ['camel', 'walk'], ['ram', 'attack'], ['trebuchet', 'attack'], ['deer', 'walk']];
+const variants = {
+  copyNoEdge: { edge: false, grad: true, outline: 'copy', tex: false, gradMin: 0 },
+  haloAll: { edge: true, grad: true, outline: 'halo1', tex: false, gradMin: 0, edgeMin: 0 },
+  haloNoEdge: { edge: false, grad: true, outline: 'halo1', tex: false, gradMin: 0 },
+  haloEdge5: { edge: true, grad: true, outline: 'halo1', tex: false, gradMin: 0, edgeMin: 5 },
+  haloFlat: { edge: false, grad: false, outline: 'halo1', tex: false },
+  none: { edge: false, grad: false, outline: 'none', tex: false },
+};
+const keep = [];
+const main = document.createElement('canvas'); main.width = 1200; main.height = 800; const mctx = main.getContext('2d');
+for (const [name, ro] of Object.entries(variants)) {
+  Object.assign(C.RO, ro);
+  let total = 0, cnt = 0;
+  for (const [t, anim] of sets) {
+    const n = U.animFrames(t, anim);
+    const scenes = [];
+    for (let i = 0; i < 24; i++) scenes.push(U.buildUnitScene(t, 1 + (i & 3), i & 7, anim, i % n, i & 3));
+    // snapshot scenes: parts arrays are reused by the shared Scene, so rebuild per iteration instead
+    for (let i = 0; i < 30; i++) { const S = U.buildUnitScene(t, 1, i & 7, anim, i % n); C.renderSprite(S); }
+    const t0 = performance.now();
+    for (let i = 0; i < N; i++) {
+      const S = U.buildUnitScene(t, 1 + (i & 3), i & 7, anim, i % n, i & 3);
+      const s = C.renderSprite(S);
+      mctx.drawImage(s.canvas, (i % 12) * 90, ((i >> 4) % 6) * 120);     // engine-like use
+      if (i % 20 === 19) mctx.getImageData(0, 0, 1, 1);                   // periodic flush of the main canvas
+    }
+    mctx.getImageData(0, 0, 1, 1);
+    const dt = (performance.now() - t0) / N;
+    res.v[name] = res.v[name] || {}; res.v[name][t + ':' + anim] = +dt.toFixed(3);
+  }
+}
+out.textContent = JSON.stringify(res, null, 1);
+window.__result = res; window.__done = true;
+</script>

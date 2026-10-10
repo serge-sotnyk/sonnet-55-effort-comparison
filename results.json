@@ -27,7 +27,11 @@
       "weekly_all_after": "2%",
       "note": "Read from the app's usage panel; includes the orchestrating session's own small usage; whole-percent rounding."
     },
-    "result_segments": 1
+    "result_segments": 1,
+    "parts": 1,
+    "cost_by_part": [
+      4.3
+    ]
   },
   {
     "effort": "High",
@@ -57,6 +61,52 @@
       "weekly_all_before": "2%",
       "weekly_all_after": "4%",
       "note": "Read from the app's usage panel; includes the orchestrating session's own small usage; whole-percent rounding."
-    }
+    },
+    "parts": 1,
+    "cost_by_part": [
+      28.85
+    ]
+  },
+  {
+    "effort": "Max",
+    "model": "claude-sonnet-5-5",
+    "cost": 147.82,
+    "input": 4847,
+    "output": 3184179,
+    "cache_read": 496793698,
+    "cache_write": 5599964,
+    "total_tokens": 505582688,
+    "elapsed": "2h 41m 53s",
+    "api_time": "6h 06m 59s",
+    "num_turns": 303,
+    "result_segments": 2,
+    "parts": 2,
+    "subagents_spawned": 5,
+    "permission_denials": 0,
+    "cost_by_model": {
+      "claude-sonnet-5-5": 147.82
+    },
+    "cli_version": "2.1.289",
+    "status": "Complete",
+    "play": "games/max/",
+    "cost_by_part": [
+      123.42,
+      24.4
+    ],
+    "usage_limits": {
+      "plan": "Team",
+      "part1": {
+        "session": "1% \u2192 100%",
+        "weekly": "0% \u2192 10%"
+      },
+      "part2": {
+        "session": "1% \u2192 16%",
+        "weekly": "11% \u2192 12%"
+      },
+      "weekly_all_before": "0%",
+      "weekly_all_after": "12%",
+      "note": "From rate_limit_event in the stream (the run's own account usage)."
+    },
+    "note": "Part 1 hit the Team plan's 5-hour session limit after 1h 41m ($123.42); resumed the same session with a neutral 'Continue' after the window reset; part 2 took 1h 01m ($24.40)."
   }
 ]
